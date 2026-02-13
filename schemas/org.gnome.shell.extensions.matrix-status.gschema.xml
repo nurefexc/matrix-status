@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.matrix-status" path="/org/gnome/shell/extensions/matrix-status/">
+        <key name="homeserver-url" type="s">
+            <default>'https://matrix.org'</default>
+            <summary>Homeserver URL</summary>
+        </key>
+        <key name="access-token" type="s">
+            <default>''</default>
+            <summary>API Access Token</summary>
+        </key>
+        <key name="sync-interval" type="i">
+            <default>10</default>
+            <summary>Polling interval in seconds</summary>
+        </key>
+    </schema>
+</schemalist>
