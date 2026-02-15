@@ -19,3 +19,8 @@
 .popup-menu-item b {
     font-weight: bold;
 }
+
+.popup-menu-icon {
+    margin-right: 8px;
+    padding: 2px;
+}

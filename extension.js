@@ -52,8 +52,21 @@ const MatrixIndicator = GObject.registerClass(
 
                 rooms.forEach(room => {
                     const item = new PopupMenu.PopupMenuItem('', { activate: true });
-                    const labelText = room.unread > 0 ? `<b>(${room.unread}) ${room.name}</b>` : room.name;
+
+                    if (room.encrypted) {
+                        const lockIcon = new St.Icon({
+                            icon_name: 'changes-prevent-symbolic',
+                            style_class: 'popup-menu-icon',
+                            icon_size: 14,
+                            x_align: Clutter.ActorAlign.CENTER,
+                            y_align: Clutter.ActorAlign.CENTER,
+                        });
+                        item.insert_child_at_index(lockIcon, 0);
+                    }
+
+                    let labelText = room.unread > 0 ? `<b>(${room.unread}) ${room.name}</b>` : room.name;
                     item.label.get_clutter_text().set_markup(labelText);
+
                     item.connect('activate', () => {
                         Gio.AppInfo.launch_default_for_uri(this._getRoomUrl(room.id), null);
                     });
@@ -76,7 +89,7 @@ const MatrixIndicator = GObject.registerClass(
 
             const filter = JSON.stringify({
                 room: {
-                    state: { types: ["m.room.name", "m.room.member", "m.room.canonical_alias"], lazy_load_members: true },
+                    state: { types: ["m.room.name", "m.room.member", "m.room.canonical_alias", "m.room.encryption"], lazy_load_members: true },
                     timeline: { limit: 1 },
                     account_data: { types: ["m.tag"] }
                 }
@@ -139,11 +152,14 @@ const MatrixIndicator = GObject.registerClass(
                         const lastEvent = roomData.timeline?.events?.[roomData.timeline.events.length - 1];
                         const timestamp = lastEvent?.origin_server_ts || 0;
 
+                        const isEncrypted = roomData.state?.events?.some(e => e.type === 'm.room.encryption');
+
                         roomList.push({
                             name: name || "Unnamed Room",
                             id: roomId,
                             unread,
-                            timestamp
+                            timestamp,
+                            encrypted: isEncrypted
                         });
                     }
                 }
