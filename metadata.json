@@ -6,5 +6,8 @@
   "shell-version": ["45", "46", "47", "48", "49"],
   "url": "https://github.com/nurefexc/matrix-status",
   "gettext-domain": "matrix-status",
+  "donations": {
+    "github": "nurefexc"
+  },
   "settings-schema": "org.gnome.shell.extensions.matrix-status"
 }
