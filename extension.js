@@ -37,8 +37,25 @@ const MatrixIndicator = GObject.registerClass(
             super.destroy();
         }
 
-        _getRoomUrl(roomId = null) {
+        _getWebUrl(roomId = null) {
             return roomId ? `https://matrix.to/#/${roomId}` : 'https://matrix.to';
+        }
+
+        _getElementUrl(roomId = null) {
+            return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
+        }
+
+        _openMatrixClient(roomId = null) {
+            const clientType = this._settings.get_enum('client-type');
+            let uri;
+
+            if (clientType === 1) { // element
+                uri = this._getElementUrl(roomId);
+            } else {
+                uri = this._getWebUrl(roomId);
+            }
+
+            Gio.AppInfo.launch_default_for_uri(uri, null);
         }
 
         _buildMenu(rooms = []) {
@@ -68,16 +85,19 @@ const MatrixIndicator = GObject.registerClass(
                     item.label.get_clutter_text().set_markup(labelText);
 
                     item.connect('activate', () => {
-                        Gio.AppInfo.launch_default_for_uri(this._getRoomUrl(room.id), null);
+                        this._openMatrixClient(room.id);
                     });
                     this.menu.addMenuItem(item);
                 });
             }
 
-            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-            const launchItem = new PopupMenu.PopupMenuItem('Open Matrix Client');
-            launchItem.connect('activate', () => Gio.AppInfo.launch_default_for_uri(this._getRoomUrl(), null));
-            this.menu.addMenuItem(launchItem);
+            const clientType = this._settings.get_enum('client-type');
+            if (clientType === 1) {
+                this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+                const launchItem = new PopupMenu.PopupMenuItem('Open Element');
+                launchItem.connect('activate', () => this._openMatrixClient());
+                this.menu.addMenuItem(launchItem);
+            }
         }
 
         async refresh() {

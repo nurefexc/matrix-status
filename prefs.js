@@ -44,6 +44,19 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         intervalRow.add_suffix(intervalSpin);
         configGroup.add(intervalRow);
 
+        const clientTypeRow = new Adw.ComboRow({
+            title: 'Preferred Client',
+            subtitle: 'Choose which client to use when opening rooms',
+            model: new Gtk.StringList({
+                strings: ['Web (matrix.to)', 'Element']
+            })
+        });
+        clientTypeRow.selected = settings.get_enum('client-type');
+        clientTypeRow.connect('notify::selected', () => {
+            settings.set_enum('client-type', clientTypeRow.selected);
+        });
+        configGroup.add(clientTypeRow);
+
         // Separator Group
         page.add(new Adw.PreferencesGroup());
 

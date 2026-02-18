@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
+    <enum id="org.gnome.shell.extensions.matrix-status.ClientType">
+        <value nick="web" value="0"/>
+        <value nick="element" value="1"/>
+    </enum>
+
     <schema id="org.gnome.shell.extensions.matrix-status" path="/org/gnome/shell/extensions/matrix-status/">
         <key name="homeserver-url" type="s">
             <default>'https://matrix.org'</default>
@@ -12,6 +17,11 @@
         <key name="sync-interval" type="i">
             <default>10</default>
             <summary>Polling interval in seconds</summary>
+        </key>
+        <key name="client-type" enum="org.gnome.shell.extensions.matrix-status.ClientType">
+            <default>'web'</default>
+            <summary>Matrix Client Type</summary>
+            <description>Choose between Web (matrix.to) and Element (element://)</description>
         </key>
     </schema>
 </schemalist>
