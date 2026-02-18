@@ -39,6 +39,8 @@ This extension supports GNOME Shell `45` -> `49`.
 - **Modern UI**: Built with native GNOME Shell components (St, Adwaita) for a seamless experience.
 - **Matrix.to Integration**: One-click room opening using universal Matrix links.
 - **Security Indicator**: Visual feedback (lock icon) for rooms with end-to-end encryption (E2EE) enabled.
+- **Direct Client Integration**: Open rooms directly in Element or Fractal.
+- **Intelligent Filtering**: Automatically displays only relevant rooms, prioritizing unread messages and favorites.
 
 ## Configuration
 
@@ -51,9 +53,12 @@ Open the extension settings to configure:
 
 The goal of this project is to provide an ultra-lightweight navigation layer for the Matrix network, prioritizing productivity and quick access over message display.
 
-### 🛠️ Phase 1: Navigation Fundamentals (V1.1 – In Progress)
-- **Direct Client Integration**: Open rooms directly in your preferred desktop client (Element, FluffyChat, etc.) via `matrix.to` URI schemes.
-- **Intelligent Filtering**: Display only relevant rooms (prioritizing unread messages and favorites).
+#### Next up
+- Quick Identification (Avatars): Implement and cache room/user avatars in the dropdown for faster visual recognition.
+
+### 🛠️ Phase 1: Navigation Fundamentals (V1.1 – Completed)
+- **Direct Client Integration**: Future support for additional clients like FluffyChat.
+- **Intelligent Filtering**: Optimization and advanced rule sets.
 
 ### 🔍 Phase 2: "Search & Access" Turbo
 - **GNOME Overview Integration**: Access rooms directly from the system's central search (Super key) using an asynchronous cache.
