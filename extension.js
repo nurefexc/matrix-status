@@ -42,7 +42,7 @@ const MatrixIndicator = GObject.registerClass(
             this.icon = new St.Icon({
                 gicon: gicon,
                 style_class: 'system-status-icon',
-                icon_size: 16
+                icon_size: 16,
             });
 
             this.add_child(this.icon);
@@ -72,7 +72,8 @@ const MatrixIndicator = GObject.registerClass(
          * - 'via' parameter for the room domain (better discoverability on the network)
          */
         _getFractalUrl(roomId = null) {
-            if (!roomId) return 'matrix:';
+            if (!roomId)
+                return 'matrix:';
             
             // Format: matrix:roomid/ddFcOBvOPLPIhKDvmy%3Anurefexc.com?action=join&via=nurefexc.com
             // Remove '!' from start of roomId if present
@@ -92,11 +93,13 @@ const MatrixIndicator = GObject.registerClass(
             const clientType = this._settings.get_enum('client-type');
             let uri;
 
-            if (clientType === 2) { // fractal
+            if (clientType === 2) {
                 uri = this._getFractalUrl(roomId);
-            } else if (clientType === 1) { // element
+            }
+            else if (clientType === 1) {
                 uri = this._getElementUrl(roomId);
-            } else {
+            }
+            else {
                 uri = this._getWebUrl(roomId);
             }
 
@@ -109,10 +112,11 @@ const MatrixIndicator = GObject.registerClass(
                 const item = new PopupMenu.PopupMenuItem('No Active Messages');
                 item.sensitive = false;
                 this.menu.addMenuItem(item);
-            } else {
+            }
+            else {
                 rooms.sort((a, b) => b.timestamp - a.timestamp);
 
-                rooms.forEach(room => {
+                rooms.forEach((room) => {
                     const item = new PopupMenu.PopupMenuItem('', { activate: true });
 
                     if (room.encrypted) {
@@ -149,7 +153,7 @@ const MatrixIndicator = GObject.registerClass(
                 const gicon = Gio.FileIcon.new(gfile);
                 const icon = new St.Icon({
                     gicon: gicon,
-                    icon_size: 16
+                    icon_size: 16,
                 });
                 launchItem.add_child(icon);
                 launchItem.remove_child(icon);
@@ -168,16 +172,18 @@ const MatrixIndicator = GObject.registerClass(
         async refresh() {
             let homeserver = this._settings.get_string('homeserver-url').trim();
             const token = this._settings.get_string('access-token').trim();
-            if (!token || !homeserver) return;
-            if (!homeserver.startsWith('http')) homeserver = `https://${homeserver}`;
-            homeserver = homeserver.replace(/\/$/, "");
+            if (!token || !homeserver)
+                return;
+            if (!homeserver.startsWith('http'))
+                homeserver = `https://${homeserver}`;
+            homeserver = homeserver.replace(/\/$/, '');
 
             const filter = JSON.stringify({
                 room: {
-                    state: { types: ["m.room.name", "m.room.member", "m.room.canonical_alias", "m.room.encryption"], lazy_load_members: true },
+                    state: { types: ['m.room.name', 'm.room.member', 'm.room.canonical_alias', 'm.room.encryption'], lazy_load_members: true },
                     timeline: { limit: 1 },
-                    account_data: { types: ["m.tag"] }
-                }
+                    account_data: { types: ['m.tag'] },
+                },
             });
 
             try {
@@ -186,15 +192,16 @@ const MatrixIndicator = GObject.registerClass(
                 message.request_headers.append('Authorization', `Bearer ${token}`);
                 
                 const bytes = await this._httpSession.send_and_read_async(
-                    message, 
-                    GLib.PRIORITY_DEFAULT, 
-                    this._cancellable
+                    message,
+                    GLib.PRIORITY_DEFAULT,
+                    this._cancellable,
                 );
 
                 if (message.status_code === 200) {
                     const response = JSON.parse(new TextDecoder().decode(bytes.toArray()));
                     this._processSync(response);
-                } else {
+                }
+                else {
                     console.warn(`[Matrix-Status] Sync failed with status: ${message.status_code}`);
                 }
             } catch (e) {
@@ -218,21 +225,23 @@ const MatrixIndicator = GObject.registerClass(
                     const unreadNotifications = roomData.unread_notifications?.notification_count || 0;
                     const highlightCount = roomData.unread_notifications?.highlight_count || 0;
                     const unread = unreadNotifications + highlightCount;
-                    
-                    if (unread > 0) totalUnread += unread;
 
-                    const hasFavTag = roomData.account_data?.events?.some(e => e.type === 'm.tag' && e.content?.tags?.['m.favourite']);
+                    if (unread > 0)
+                        totalUnread += unread;
+
+                    const hasFavTag = roomData.account_data?.events?.some((e) => e.type === 'm.tag' && e.content?.tags?.['m.favourite']);
 
                     // Show room if it has unread messages OR it's a favorite
                     if (unread > 0 || hasFavTag) {
                         let name = null;
-                        const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
-                        if (nameEv?.content?.name) name = nameEv.content.name;
+                        const nameEv = roomData.state?.events?.find((e) => e.type === 'm.room.name');
+                        if (nameEv?.content?.name)
+                            name = nameEv.content.name;
 
                         if (!name && roomData.summary?.['m.heroes']?.length > 0) {
                             const heroes = roomData.summary['m.heroes'];
-                            const heroNames = heroes.map(h => {
-                                const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
+                            const heroNames = heroes.map((h) => {
+                                const m = roomData.state?.events?.find((e) => e.type === 'm.room.member' && e.state_key === h);
                                 return m?.content?.displayname || h.split(':')[0].replace('@', '');
                             });
                             name = heroNames.join(', ');
@@ -242,14 +251,14 @@ const MatrixIndicator = GObject.registerClass(
                         const lastEvent = roomData.timeline?.events?.[roomData.timeline.events.length - 1];
                         const timestamp = lastEvent?.origin_server_ts || 0;
 
-                        const isEncrypted = roomData.state?.events?.some(e => e.type === 'm.room.encryption');
+                        const isEncrypted = roomData.state?.events?.some((e) => e.type === 'm.room.encryption');
 
                         roomList.push({
-                            name: name || "Unnamed Room",
+                            name: name || 'Unnamed Room',
                             id: roomId,
                             unread,
                             timestamp,
-                            encrypted: isEncrypted
+                            encrypted: isEncrypted,
                         });
                     }
                 }
@@ -257,7 +266,8 @@ const MatrixIndicator = GObject.registerClass(
 
             if (totalUnread > 0) {
                 this.add_style_class_name('matrix-pill-active');
-            } else {
+            }
+            else {
                 this.remove_style_class_name('matrix-pill-active');
             }
 

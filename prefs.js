@@ -8,7 +8,6 @@ import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
-import GLib from 'gi://GLib';
 
 /**
  * Preferences window structure.
@@ -25,7 +24,7 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         // Matrix API Group
         const apiGroup = new Adw.PreferencesGroup({
             title: 'Matrix API Configuration',
-            description: 'Enter your homeserver and access token'
+            description: 'Enter your homeserver and access token',
         });
         page.add(apiGroup);
 
@@ -42,17 +41,17 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
 
         // Client Settings
         const configGroup = new Adw.PreferencesGroup({
-            title: 'General Settings'
+            title: 'General Settings',
         });
         page.add(configGroup);
 
         const intervalRow = new Adw.ActionRow({
             title: 'Sync Interval (seconds)',
-            subtitle: 'How often to check for new messages'
+            subtitle: 'How often to check for new messages',
         });
         const intervalSpin = new Gtk.SpinButton({
             adjustment: new Gtk.Adjustment({ lower: 5, upper: 3600, step_increment: 5, page_increment: 10 }),
-            valign: Gtk.Align.CENTER
+            valign: Gtk.Align.CENTER,
         });
         settings.bind('sync-interval', intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         intervalRow.add_suffix(intervalSpin);
@@ -60,11 +59,11 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
 
         const clientTypeRow = new Adw.ComboRow({
             title: 'Preferred Client',
-            subtitle: 'Choose which client to use when opening rooms'
+            subtitle: 'Choose which client to use when opening rooms',
         });
 
         const clientModel = new Gtk.StringList({
-            strings: ['Web (matrix.to)', 'Element', 'Fractal']
+            strings: ['Web (matrix.to)', 'Element', 'Fractal'],
         });
         clientTypeRow.model = clientModel;
 
@@ -84,16 +83,16 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         // GitHub Repository
         const repoRow = new Adw.ActionRow({
             title: 'Source Code',
-            subtitle: 'View the project on GitHub'
+            subtitle: 'View the project on GitHub',
         });
 
         const repoBtn = new Gtk.Button({
             child: new Adw.ButtonContent({
                 icon_name: 'external-link-symbolic',
-                label: 'GitHub'
+                label: 'GitHub',
             }),
             valign: Gtk.Align.CENTER,
-            css_classes: ['suggested-action']
+            css_classes: ['suggested-action'],
         });
 
         repoBtn.connect('clicked', () => {
@@ -106,15 +105,15 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         // GitHub Profile
         const profileRow = new Adw.ActionRow({
             title: 'GitHub Profile',
-            subtitle: 'Check out my other projects'
+            subtitle: 'Check out my other projects',
         });
 
         const profileBtn = new Gtk.Button({
             child: new Adw.ButtonContent({
                 icon_name: 'external-link-symbolic',
-                label: 'nurefexc'
+                label: 'nurefexc',
             }),
-            valign: Gtk.Align.CENTER
+            valign: Gtk.Align.CENTER,
         });
 
         profileBtn.connect('clicked', () => {
@@ -127,15 +126,15 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         // Website
         const websiteRow = new Adw.ActionRow({
             title: 'Personal Website',
-            subtitle: 'Visit nurefexc.com'
+            subtitle: 'Visit nurefexc.com',
         });
 
         const websiteBtn = new Gtk.Button({
             child: new Adw.ButtonContent({
                 icon_name: 'external-link-symbolic',
-                label: 'nurefexc.com'
+                label: 'nurefexc.com',
             }),
-            valign: Gtk.Align.CENTER
+            valign: Gtk.Align.CENTER,
         });
 
         websiteBtn.connect('clicked', () => {
