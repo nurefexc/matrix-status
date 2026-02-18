@@ -1,13 +1,17 @@
 UUID = matrix-status@nurefexc.com
 DEST = $(HOME)/.local/share/gnome-shell/extensions/$(UUID)
 
-.PHONY: all install compile clean restart
+.PHONY: all install compile clean restart lint
 
 all: compile install
 
 compile:
 	@echo "Compiling schemas..."
 	glib-compile-schemas schemas/
+
+lint:
+	@echo "Running linter..."
+	npx eslint .
 
 # Local installation (use with caution)
 install: compile

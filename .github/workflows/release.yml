@@ -1,0 +1,65 @@
+name: Release Extension
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make zip libglib2.0-bin
+
+      - name: Checkout release target branch
+        run: |
+          git fetch origin "${{ github.event.release.target_commitish }}"
+          git checkout "${{ github.event.release.target_commitish }}"
+
+      - name: Bump extension version in metadata.json
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          p = pathlib.Path('metadata.json')
+          d = json.loads(p.read_text())
+          d['version'] = int(d.get('version', 0)) + 1
+          p.write_text(json.dumps(d, indent=2) + "\n")
+          print(f"New version: {d['version']}")
+          PY
+
+      - name: Commit and push version bump
+        env:
+          BRANCH: ${{ github.event.release.target_commitish }}
+        run: |
+          if ! git diff --quiet; then
+            git add metadata.json
+            git commit -m "chore: bump version for release ${{ github.event.release.tag_name }}"
+            git push origin HEAD:"${BRANCH}"
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Build extension zip
+        run: make zip
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
