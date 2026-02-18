@@ -72,20 +72,21 @@ const MatrixIndicator = GObject.registerClass(
          * - 'via' parameter for the room domain (better discoverability on the network)
          */
         _getFractalUrl(roomId = null) {
-            if (!roomId)
+            if (!roomId) {
                 return 'matrix:';
-            
+            }
+
             // Format: matrix:roomid/ddFcOBvOPLPIhKDvmy%3Anurefexc.com?action=join&via=nurefexc.com
             // Remove '!' from start of roomId if present
             const cleanId = roomId.startsWith('!') ? roomId.slice(1) : roomId;
             const encodedId = cleanId.replace(/:/g, '%3A');
-            
+
             // Extract domain for 'via' parameter
             let via = '';
             if (cleanId.includes(':')) {
                 via = `&via=${cleanId.split(':')[1]}`;
             }
-            
+
             return `matrix:roomid/${encodedId}?action=join${via}`;
         }
 
@@ -145,9 +146,9 @@ const MatrixIndicator = GObject.registerClass(
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 const clientName = clientType === 1 ? 'Element' : 'Fractal';
                 const iconName = clientType === 1 ? 'element.svg' : 'fractal.svg';
-                
+
                 const launchItem = new PopupMenu.PopupMenuItem(`Open ${clientName}`);
-                
+
                 const iconPath = GLib.build_filenamev([this._path, 'icons', iconName]);
                 const gfile = Gio.File.new_for_path(iconPath);
                 const gicon = Gio.FileIcon.new(gfile);
@@ -190,7 +191,7 @@ const MatrixIndicator = GObject.registerClass(
                 const url = `${homeserver}/_matrix/client/v3/sync?timeout=0&filter=${encodeURIComponent(filter)}`;
                 const message = Soup.Message.new('GET', url);
                 message.request_headers.append('Authorization', `Bearer ${token}`);
-                
+
                 const bytes = await this._httpSession.send_and_read_async(
                     message,
                     GLib.PRIORITY_DEFAULT,
@@ -204,7 +205,8 @@ const MatrixIndicator = GObject.registerClass(
                 else {
                     console.warn(`[Matrix-Status] Sync failed with status: ${message.status_code}`);
                 }
-            } catch (e) {
+            }
+            catch (e) {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                     console.error(`[Matrix-Status] Sync error: ${e.message}`);
                 }
@@ -229,19 +231,19 @@ const MatrixIndicator = GObject.registerClass(
                     if (unread > 0)
                         totalUnread += unread;
 
-                    const hasFavTag = roomData.account_data?.events?.some((e) => e.type === 'm.tag' && e.content?.tags?.['m.favourite']);
+                    const hasFavTag = roomData.account_data?.events?.some(e => e.type === 'm.tag' && e.content?.tags?.['m.favourite']);
 
                     // Show room if it has unread messages OR it's a favorite
                     if (unread > 0 || hasFavTag) {
                         let name = null;
-                        const nameEv = roomData.state?.events?.find((e) => e.type === 'm.room.name');
+                        const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
                         if (nameEv?.content?.name)
                             name = nameEv.content.name;
 
                         if (!name && roomData.summary?.['m.heroes']?.length > 0) {
                             const heroes = roomData.summary['m.heroes'];
-                            const heroNames = heroes.map((h) => {
-                                const m = roomData.state?.events?.find((e) => e.type === 'm.room.member' && e.state_key === h);
+                            const heroNames = heroes.map(h => {
+                                const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
                                 return m?.content?.displayname || h.split(':')[0].replace('@', '');
                             });
                             name = heroNames.join(', ');
@@ -251,7 +253,7 @@ const MatrixIndicator = GObject.registerClass(
                         const lastEvent = roomData.timeline?.events?.[roomData.timeline.events.length - 1];
                         const timestamp = lastEvent?.origin_server_ts || 0;
 
-                        const isEncrypted = roomData.state?.events?.some((e) => e.type === 'm.room.encryption');
+                        const isEncrypted = roomData.state?.events?.some(e => e.type === 'm.room.encryption');
 
                         roomList.push({
                             name: name || 'Unnamed Room',
