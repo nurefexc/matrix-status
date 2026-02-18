@@ -28,6 +28,7 @@ const MatrixIndicator = GObject.registerClass(
             });
 
             this.add_child(this.icon);
+            this._lastRooms = [];
             this._buildMenu([]);
         }
 
@@ -95,6 +96,19 @@ const MatrixIndicator = GObject.registerClass(
             if (clientType === 1) {
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 const launchItem = new PopupMenu.PopupMenuItem('Open Element');
+                
+                const iconPath = GLib.build_filenamev([this._path, 'icons', 'element.svg']);
+                const gfile = Gio.File.new_for_path(iconPath);
+                const gicon = Gio.FileIcon.new(gfile);
+                const icon = new St.Icon({
+                    gicon: gicon,
+                    icon_size: 16
+                });
+                launchItem.add_child(icon);
+                // Move icon to the beginning if add_child puts it at the end
+                launchItem.remove_child(icon);
+                launchItem.insert_child_at_index(icon, 0);
+
                 launchItem.connect('activate', () => this._openMatrixClient());
                 this.menu.addMenuItem(launchItem);
             }
@@ -191,6 +205,7 @@ const MatrixIndicator = GObject.registerClass(
                 this.remove_style_class_name('matrix-pill-active');
             }
 
+            this._lastRooms = roomList;
             this._buildMenu(roomList);
         }
     });
@@ -203,6 +218,10 @@ export default class MatrixExtension extends Extension {
         this._indicator.refresh();
 
         this._settings.connect('changed::sync-interval', () => this._restartTimer());
+        this._settings.connect('changed::client-type', () => {
+            // Rebuild menu immediately to reflect client change (e.g., show/hide Open Element)
+            this._indicator?._buildMenu(this._indicator?._lastRooms ?? []);
+        });
         this._restartTimer();
     }
 

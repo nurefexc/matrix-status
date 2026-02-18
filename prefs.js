@@ -2,6 +2,7 @@ import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
+import GLib from 'gi://GLib';
 
 export default class MatrixStatusPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -46,11 +47,14 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
 
         const clientTypeRow = new Adw.ComboRow({
             title: 'Preferred Client',
-            subtitle: 'Choose which client to use when opening rooms',
-            model: new Gtk.StringList({
-                strings: ['Web (matrix.to)', 'Element']
-            })
+            subtitle: 'Choose which client to use when opening rooms'
         });
+
+        const clientModel = new Gtk.StringList({
+            strings: ['Web (matrix.to)', 'Element']
+        });
+        clientTypeRow.model = clientModel;
+
         clientTypeRow.selected = settings.get_enum('client-type');
         clientTypeRow.connect('notify::selected', () => {
             settings.set_enum('client-type', clientTypeRow.selected);
