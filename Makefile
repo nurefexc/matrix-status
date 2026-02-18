@@ -23,7 +23,7 @@ install: compile
 # Create a zip for extensions.gnome.org
 zip: compile
 	@echo "Creating extension zip..."
-	zip -r $(UUID).shell-extension.zip schemas icons extension.js prefs.js metadata.json stylesheet.css LICENSE README.md
+	zip -r $(UUID).shell-extension.zip schemas icons extension.js prefs.js metadata.json stylesheet.css LICENSE README.md -x "schemas/gschemas.compiled"
 
 restart:
 	gnome-extensions disable $(UUID) || true
