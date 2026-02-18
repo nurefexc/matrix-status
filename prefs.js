@@ -1,9 +1,22 @@
+/*
+ * Matrix Status Monitor – Preferences UI
+ *
+ * Here we define the Adwaita (libadwaita) interface for editing
+ * GSettings keys: homeserver, token, sync interval, client type.
+ */
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';
 
+/**
+ * Preferences window structure.
+ * Layout:
+ * 1) Matrix API (homeserver, access token)
+ * 2) General settings (sync interval, client selector)
+ * 3) Links/Info
+ */
 export default class MatrixStatusPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();

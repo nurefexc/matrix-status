@@ -1,3 +1,16 @@
+/*
+ * Matrix Status Monitor – GNOME Shell extension
+ *
+ * Goal: Lightweight navigation and notification layer for Matrix in the GNOME panel.
+ * Style: Readability, maintainability, minimal dependencies.
+ *
+ * Note to contributors:
+ * - Keep network calls (Soup.Session) and UI building (PopupMenu)
+ *   clearly separated.
+ * - All user settings are in GSettings (schemas/...).
+ * - Targeted shell versions: GNOME 45–49.
+ */
+
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -9,6 +22,11 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+/**
+ * Indicator displayed on the panel and dropdown menu handling.
+ * - Icon: matrix-symbolic
+ * - Menu: Room list + Client launcher (Element/Fractal)
+ */
 const MatrixIndicator = GObject.registerClass(
     class MatrixIndicator extends PanelMenu.Button {
         _init(settings, extensionPath) {
@@ -46,6 +64,13 @@ const MatrixIndicator = GObject.registerClass(
             return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
         }
 
+        /**
+         * Generate Fractal URI for a given room.
+         * Example: matrix:roomid/<encoded_room_id>?action=join&via=<domain>
+         * - Remove '!' prefix from the start of roomId
+         * - ':' → '%3A' encoding
+         * - 'via' parameter for the room domain (better discoverability on the network)
+         */
         _getFractalUrl(roomId = null) {
             if (!roomId) return 'matrix:';
             
@@ -135,6 +160,11 @@ const MatrixIndicator = GObject.registerClass(
             }
         }
 
+        /**
+         * Synchronization with Matrix Client API (/_matrix/client/v3/sync).
+         * - Minimal filter: room name, tags, encryption flag
+         * - Goal: Fast, lightweight list building (not message display)
+         */
         async refresh() {
             let homeserver = this._settings.get_string('homeserver-url').trim();
             const token = this._settings.get_string('access-token').trim();
@@ -174,6 +204,11 @@ const MatrixIndicator = GObject.registerClass(
             }
         }
 
+        /**
+         * Process sync response and update menu/data state.
+         * - Intelligent filtering: only unread or favorite rooms
+         * - Sorting: based on last event timestamp (desc)
+         */
         _processSync(data) {
             let roomList = [];
             let totalUnread = 0;
@@ -231,6 +266,12 @@ const MatrixIndicator = GObject.registerClass(
         }
     });
 
+/**
+ * Main extension lifecycle management (enable/disable).
+ * - Settings initialization
+ * - Indicator creation and registration in the panel
+ * - Timer (sync) management
+ */
 export default class MatrixExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
