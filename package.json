@@ -1,0 +1,17 @@
+{
+  "name": "matrix-status",
+  "version": "1.1.0",
+  "description": "High-performance Matrix notification monitor for GNOME Shell.",
+  "main": "extension.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@stylistic/eslint-plugin": "^2.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  },
+  "author": "nurefexc",
+  "license": "MIT"
+}
