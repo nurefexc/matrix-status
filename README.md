@@ -1,7 +1,10 @@
 # Matrix Status Monitor
 
-[<img src="https://raw.githubusercontent.com/eonpatapon/gnome-shell-extension-caffeine/master/resources/get_it_on_gnome_extensions.png" height="100" align="right">](https://extensions.gnome.org/extension/9328/matrix-status-monitor/)
-
+[![GNOME Extensions](https://img.shields.io/badge/GNOME%20Extensions-Install-4A86CF?logo=gnome&logoColor=white)](https://extensions.gnome.org/extension/9328/matrix-status-monitor/)
+[![Lint](https://github.com/nurefexc/matrix-status/actions/workflows/linter.yml/badge.svg)](https://github.com/nurefexc/matrix-status/actions/workflows/linter.yml)
+[![Release](https://github.com/nurefexc/matrix-status/actions/workflows/release.yml/badge.svg)](https://github.com/nurefexc/matrix-status/actions/workflows/release.yml)
+[![Version](https://img.shields.io/github/v/release/nurefexc/matrix-status?label=version)](https://github.com/nurefexc/matrix-status/releases)
+[![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%E2%80%9349-4A86CF)](#version)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 High-performance Matrix notification monitor for GNOME Shell.
