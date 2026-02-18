@@ -36,8 +36,8 @@ const MatrixIndicator = GObject.registerClass(
             this._httpSession = new Soup.Session();
             this._cancellable = new Gio.Cancellable();
 
-            const iconPath = GLib.build_filenamev([this._path, 'icons', 'matrix-symbolic.svg']);
-            const gicon = Gio.FileIcon.new(Gio.File.new_for_path(iconPath));
+            const iconPath = GLib.build_filenamev([this._path, 'icons', 'matrix.svg']);
+            const gicon = Gio.Icon.new_for_string(iconPath);
 
             this.icon = new St.Icon({
                 gicon: gicon,
