@@ -242,7 +242,7 @@ const MatrixIndicator = GObject.registerClass(
 
                         if (!name && roomData.summary?.['m.heroes']?.length > 0) {
                             const heroes = roomData.summary['m.heroes'];
-                            const heroNames = heroes.map(h => {
+                            const heroNames = heroes.map((h) => {
                                 const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
                                 return m?.content?.displayname || h.split(':')[0].replace('@', '');
                             });
