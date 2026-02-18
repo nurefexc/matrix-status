@@ -46,11 +46,30 @@ const MatrixIndicator = GObject.registerClass(
             return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
         }
 
+        _getFractalUrl(roomId = null) {
+            if (!roomId) return 'matrix:';
+            
+            // Format: matrix:roomid/ddFcOBvOPLPIhKDvmy%3Anurefexc.com?action=join&via=nurefexc.com
+            // Remove '!' from start of roomId if present
+            const cleanId = roomId.startsWith('!') ? roomId.slice(1) : roomId;
+            const encodedId = cleanId.replace(/:/g, '%3A');
+            
+            // Extract domain for 'via' parameter
+            let via = '';
+            if (cleanId.includes(':')) {
+                via = `&via=${cleanId.split(':')[1]}`;
+            }
+            
+            return `matrix:roomid/${encodedId}?action=join${via}`;
+        }
+
         _openMatrixClient(roomId = null) {
             const clientType = this._settings.get_enum('client-type');
             let uri;
 
-            if (clientType === 1) { // element
+            if (clientType === 2) { // fractal
+                uri = this._getFractalUrl(roomId);
+            } else if (clientType === 1) { // element
                 uri = this._getElementUrl(roomId);
             } else {
                 uri = this._getWebUrl(roomId);
@@ -93,11 +112,14 @@ const MatrixIndicator = GObject.registerClass(
             }
 
             const clientType = this._settings.get_enum('client-type');
-            if (clientType === 1) {
+            if (clientType === 1 || clientType === 2) {
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-                const launchItem = new PopupMenu.PopupMenuItem('Open Element');
+                const clientName = clientType === 1 ? 'Element' : 'Fractal';
+                const iconName = clientType === 1 ? 'element.svg' : 'fractal.svg';
                 
-                const iconPath = GLib.build_filenamev([this._path, 'icons', 'element.svg']);
+                const launchItem = new PopupMenu.PopupMenuItem(`Open ${clientName}`);
+                
+                const iconPath = GLib.build_filenamev([this._path, 'icons', iconName]);
                 const gfile = Gio.File.new_for_path(iconPath);
                 const gicon = Gio.FileIcon.new(gfile);
                 const icon = new St.Icon({
@@ -105,7 +127,6 @@ const MatrixIndicator = GObject.registerClass(
                     icon_size: 16
                 });
                 launchItem.add_child(icon);
-                // Move icon to the beginning if add_child puts it at the end
                 launchItem.remove_child(icon);
                 launchItem.insert_child_at_index(icon, 0);
 

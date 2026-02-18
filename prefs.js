@@ -51,7 +51,7 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         });
 
         const clientModel = new Gtk.StringList({
-            strings: ['Web (matrix.to)', 'Element']
+            strings: ['Web (matrix.to)', 'Element', 'Fractal']
         });
         clientTypeRow.model = clientModel;
 
