@@ -1,0 +1,19 @@
+# GNOME Shell compiled schemas
+schemas/gschemas.compiled
+
+# ZIP files
+*.zip
+
+# Node.js
+node_modules/
+package-lock.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
