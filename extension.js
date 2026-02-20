@@ -107,6 +107,11 @@ const MatrixIndicator = GObject.registerClass(
             Gio.AppInfo.launch_default_for_uri(uri, null);
         }
 
+        _copyToClipboard(text) {
+            const clipboard = St.Clipboard.get_default();
+            clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
+        }
+
         _buildMenu(rooms = []) {
             this.menu.removeAll();
             if (rooms.length === 0) {
@@ -133,6 +138,25 @@ const MatrixIndicator = GObject.registerClass(
 
                     let labelText = room.unread > 0 ? `<b>(${room.unread}) ${room.name}</b>` : room.name;
                     item.label.get_clutter_text().set_markup(labelText);
+                    item.label.x_expand = true;
+
+                    // Copy ID button
+                    const copyButton = new St.Button({
+                        child: new St.Icon({
+                            icon_name: 'edit-copy-symbolic',
+                            icon_size: 14,
+                        }),
+                        style_class: 'matrix-copy-button',
+                        can_focus: true,
+                    });
+
+                    copyButton.connect('clicked', () => {
+                        this._copyToClipboard(room.dmPartnerId || room.id);
+                        this.menu.close();
+                        return Clutter.EVENT_STOP;
+                    });
+
+                    item.add_child(copyButton);
 
                     item.connect('activate', () => {
                         this._openMatrixClient(room.id);
@@ -236,17 +260,27 @@ const MatrixIndicator = GObject.registerClass(
                     // Show room if it has unread messages OR it's a favorite
                     if (unread > 0 || hasFavTag) {
                         let name = null;
+                        let dmPartnerId = null;
+
                         const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
                         if (nameEv?.content?.name)
                             name = nameEv.content.name;
 
-                        if (!name && roomData.summary?.['m.heroes']?.length > 0) {
+                        if (roomData.summary?.['m.heroes']?.length > 0) {
                             const heroes = roomData.summary['m.heroes'];
-                            const heroNames = heroes.map((h) => {
-                                const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
-                                return m?.content?.displayname || h.split(':')[0].replace('@', '');
-                            });
-                            name = heroNames.join(', ');
+                            
+                            // If it's a DM (no explicit room name and usually 1 hero)
+                            if (!name && heroes.length === 1) {
+                                dmPartnerId = heroes[0];
+                            }
+
+                            if (!name) {
+                                const heroNames = heroes.map((h) => {
+                                    const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
+                                    return m?.content?.displayname || h.split(':')[0].replace('@', '');
+                                });
+                                name = heroNames.join(', ');
+                            }
                         }
 
                         // Get timestamp from the last event for sorting
@@ -258,6 +292,7 @@ const MatrixIndicator = GObject.registerClass(
                         roomList.push({
                             name: name || 'Unnamed Room',
                             id: roomId,
+                            dmPartnerId,
                             unread,
                             timestamp,
                             encrypted: isEncrypted,

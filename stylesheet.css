@@ -24,3 +24,19 @@
     margin-right: 8px;
     padding: 2px;
 }
+
+.matrix-copy-button {
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-left: 12px;
+    margin-right: 4px;
+}
+
+.matrix-copy-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.matrix-copy-button:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
