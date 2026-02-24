@@ -73,6 +73,13 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         });
         configGroup.add(clientTypeRow);
 
+        const qrRow = new Adw.SwitchRow({
+            title: 'Enable QR Code Generation',
+            subtitle: 'Show a button to generate and display room QR codes',
+        });
+        settings.bind('generate-qr-code-enable', qrRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        configGroup.add(qrRow);
+
         // Separator Group
         page.add(new Adw.PreferencesGroup());
 

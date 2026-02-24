@@ -17,6 +17,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import Soup from 'gi://Soup';
+import Shell from 'gi://Shell';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -47,6 +48,7 @@ const MatrixIndicator = GObject.registerClass(
 
             this.add_child(this.icon);
             this._lastRooms = [];
+            this._openQrRoomId = null;
             this._buildMenu([]);
         }
 
@@ -112,6 +114,142 @@ const MatrixIndicator = GObject.registerClass(
             clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
         }
 
+        _getPrettyId(room) {
+            return room.dmPartnerId || room.canonicalAlias || room.id;
+        }
+
+        _getMatrixToUrlFor(room) {
+            const target = this._getPrettyId(room);
+            return `https://matrix.to/#/${target}`;
+        }
+
+        async _toggleActionBox(room, roomItem) {
+            try {
+                // If this room's action box is already shown, close it
+                if (this._openQrRoomId === room.id) {
+                    if (roomItem._actionItem) {
+                        roomItem._actionItem.destroy();
+                        roomItem._actionItem = null;
+                    }
+                    this._openQrRoomId = null;
+                    return;
+                }
+
+                // Close any other open action box first
+                if (this._openQrRoomId) {
+                    const items = this.menu._getMenuItems();
+                    for (const item of items) {
+                        if (item._actionItem) {
+                            item._actionItem.destroy();
+                            item._actionItem = null;
+                        
+                            // Reset icon of the previous button (set to QR icon as it's now closed)
+                            const btn = item.get_children().find(c => c instanceof St.Button && c.has_style_class_name('matrix-action-button'));
+                            if (btn && btn.child instanceof St.Icon) {
+                                btn.child.icon_name = 'qr-code-symbolic';
+                            }
+                        }
+                    }
+                }
+
+                this._openQrRoomId = room.id;
+                this._createActionBox(room, roomItem);
+            }
+            catch (e) {
+                console.error(`[Matrix-Status] Action box error: ${e.message}`);
+            }
+        }
+
+        _createActionBox(room, roomItem, showQrImmediately = false) {
+            const actionItem = new PopupMenu.PopupBaseMenuItem({ reactive: true, can_focus: false });
+            actionItem.style_class = 'matrix-action-box-item';
+            
+            const mainBox = new St.BoxLayout({ vertical: true, x_expand: true });
+            
+            const qrContainer = new St.BoxLayout({ vertical: true, x_expand: true });
+            mainBox.add_child(qrContainer);
+
+            actionItem.add_child(mainBox);
+
+            // Find position to insert (right after the room item)
+            const items = this.menu._getMenuItems();
+            const index = items.indexOf(roomItem);
+            this.menu.addMenuItem(actionItem, index + 1);
+            
+            roomItem._actionItem = actionItem;
+
+            this._fillQrContainer(room, qrContainer);
+        }
+
+        async _fillQrContainer(room, container) {
+            try {
+                // Clear container first
+                container.get_children().forEach(c => c.destroy());
+                
+                const spinner = new St.Label({ text: 'Generating...', x_align: Clutter.ActorAlign.CENTER });
+                container.add_child(spinner);
+                container.visible = true;
+
+                const dataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(this._getMatrixToUrlFor(room))}`;
+                const message = Soup.Message.new('GET', dataUrl);
+                const bytes = await this._httpSession.send_and_read_async(
+                    message,
+                    GLib.PRIORITY_DEFAULT,
+                    this._cancellable,
+                );
+                
+                spinner.destroy();
+
+                if (message.status_code !== 200) {
+                    container.add_child(new St.Label({ text: 'Error generating QR', x_align: Clutter.ActorAlign.CENTER }));
+                    return;
+                }
+
+                // QR Image
+                const icon = new St.Icon({
+                    gicon: Gio.BytesIcon.new(bytes),
+                    icon_size: 160,
+                    x_align: Clutter.ActorAlign.CENTER,
+                    style_class: 'matrix-qr-image',
+                });
+                container.add_child(icon);
+
+                // ID row: label and copy button
+                const idRow = new St.BoxLayout({ 
+                    x_expand: true, 
+                    x_align: Clutter.ActorAlign.CENTER,
+                    style_class: 'matrix-qr-id-row' 
+                });
+
+                const idLabel = new St.Label({
+                    text: this._getPrettyId(room),
+                    style_class: 'matrix-qr-id-label',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+
+                const copyBtn = new St.Button({
+                    child: new St.Icon({
+                        icon_name: 'edit-copy-symbolic',
+                        icon_size: 14,
+                    }),
+                    style_class: 'button matrix-qr-copy-button',
+                    can_focus: true,
+                });
+
+                copyBtn.connect('clicked', () => {
+                    this._copyToClipboard(this._getPrettyId(room));
+                    this.menu.close();
+                });
+
+                idRow.add_child(idLabel);
+                idRow.add_child(copyBtn);
+                container.add_child(idRow);
+            }
+            catch (e) {
+                console.error(`[Matrix-Status] QR generation error: ${e.message}`);
+            }
+        }
+
         _buildMenu(rooms = []) {
             this.menu.removeAll();
             if (rooms.length === 0) {
@@ -136,32 +274,49 @@ const MatrixIndicator = GObject.registerClass(
                         item.insert_child_at_index(lockIcon, 0);
                     }
 
-                    let labelText = room.unread > 0 ? `<b>(${room.unread}) ${room.name}</b>` : room.name;
+                    const labelText = room.unread > 0 ? `<b>(${room.unread}) ${room.name}</b>` : room.name;
                     item.label.get_clutter_text().set_markup(labelText);
                     item.label.x_expand = true;
 
-                    // Copy ID button
-                    const copyButton = new St.Button({
+                    // Action button
+                    const isQrEnabled = this._settings.get_boolean('generate-qr-code-enable');
+                    const initialIconName = isQrEnabled 
+                        ? (this._openQrRoomId === room.id ? 'view-conceal-symbolic' : 'qr-code-symbolic')
+                        : 'edit-copy-symbolic';
+
+                    const actionButton = new St.Button({
                         child: new St.Icon({
-                            icon_name: 'edit-copy-symbolic',
+                            icon_name: initialIconName,
                             icon_size: 14,
                         }),
-                        style_class: 'matrix-copy-button',
+                        style_class: 'button matrix-action-button',
                         can_focus: true,
+                        y_align: Clutter.ActorAlign.CENTER,
                     });
 
-                    copyButton.connect('clicked', () => {
-                        this._copyToClipboard(room.dmPartnerId || room.id);
-                        this.menu.close();
+                    actionButton.connect('clicked', () => {
+                        if (isQrEnabled) {
+                            this._toggleActionBox(room, item);
+                            const newIconName = this._openQrRoomId === room.id ? 'view-conceal-symbolic' : 'qr-code-symbolic';
+                            actionButton.child.icon_name = newIconName;
+                        } else {
+                            this._copyToClipboard(this._getPrettyId(room));
+                            this.menu.close();
+                        }
                         return Clutter.EVENT_STOP;
                     });
 
-                    item.add_child(copyButton);
+                    item.add_child(actionButton);
 
                     item.connect('activate', () => {
                         this._openMatrixClient(room.id);
                     });
                     this.menu.addMenuItem(item);
+
+                    // Restore action box if it was open for this room
+                    if (isQrEnabled && this._openQrRoomId === room.id) {
+                        this._createActionBox(room, item, true);
+                    }
                 });
             }
 
@@ -242,6 +397,19 @@ const MatrixIndicator = GObject.registerClass(
          * - Intelligent filtering: only unread or favorite rooms
          * - Sorting: based on last event timestamp (desc)
          */
+        _isSameRoomList(newList) {
+            if (this._lastRooms.length !== newList.length)
+                return false;
+            
+            for (let i = 0; i < newList.length; i++) {
+                const a = this._lastRooms[i];
+                const b = newList[i];
+                if (a.id !== b.id || a.unread !== b.unread || a.name !== b.name || a.encrypted !== b.encrypted)
+                    return false;
+            }
+            return true;
+        }
+
         _processSync(data) {
             let roomList = [];
             let totalUnread = 0;
@@ -261,10 +429,15 @@ const MatrixIndicator = GObject.registerClass(
                     if (unread > 0 || hasFavTag) {
                         let name = null;
                         let dmPartnerId = null;
+                        let canonicalAlias = null;
 
                         const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
                         if (nameEv?.content?.name)
                             name = nameEv.content.name;
+
+                        const aliasEv = roomData.state?.events?.find(e => e.type === 'm.room.canonical_alias');
+                        if (aliasEv?.content?.alias)
+                            canonicalAlias = aliasEv.content.alias;
 
                         if (roomData.summary?.['m.heroes']?.length > 0) {
                             const heroes = roomData.summary['m.heroes'];
@@ -293,6 +466,7 @@ const MatrixIndicator = GObject.registerClass(
                             name: name || 'Unnamed Room',
                             id: roomId,
                             dmPartnerId,
+                            canonicalAlias,
                             unread,
                             timestamp,
                             encrypted: isEncrypted,
@@ -308,8 +482,11 @@ const MatrixIndicator = GObject.registerClass(
                 this.remove_style_class_name('matrix-pill-active');
             }
 
-            this._lastRooms = roomList;
-            this._buildMenu(roomList);
+            // Only rebuild menu if data changed; avoid unnecessary rebuilds to prevent flicker
+            if (!this._isSameRoomList(roomList)) {
+                this._lastRooms = roomList;
+                this._buildMenu(roomList);
+            }
         }
     });
 
@@ -329,6 +506,9 @@ export default class MatrixExtension extends Extension {
         this._settings.connect('changed::sync-interval', () => this._restartTimer());
         this._settings.connect('changed::client-type', () => {
             // Rebuild menu immediately to reflect client change (e.g., show/hide Open Element)
+            this._indicator?._buildMenu(this._indicator?._lastRooms ?? []);
+        });
+        this._settings.connect('changed::generate-qr-code-enable', () => {
             this._indicator?._buildMenu(this._indicator?._lastRooms ?? []);
         });
         this._restartTimer();

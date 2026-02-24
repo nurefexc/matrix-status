@@ -24,5 +24,10 @@
             <summary>Matrix Client Type</summary>
             <description>Choose between Web (matrix.to), Element (element://) and Fractal (matrix:)</description>
         </key>
+        <key name="generate-qr-code-enable" type="b">
+            <default>false</default>
+            <summary>Enable QR Code generation</summary>
+            <description>If enabled, a button to show a QR code for the room/user will be displayed.</description>
+        </key>
     </schema>
 </schemalist>

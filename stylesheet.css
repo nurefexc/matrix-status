@@ -25,18 +25,71 @@
     padding: 2px;
 }
 
-.matrix-copy-button {
-    padding: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    margin-left: 12px;
-    margin-right: 4px;
+.matrix-action-button {
+    padding: 3px;
+    border-radius: 8px;
+    margin-left: 4px;
+    min-width: 24px;
+    height: 24px;
+    transition: background-color 0.2s ease;
 }
 
-.matrix-copy-button:hover {
+.matrix-action-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.matrix-action-button:active {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.matrix-action-box-item {
+    background-color: rgba(255, 255, 255, 0.08);
+    margin: 2px 8px 6px 8px;
+    border-radius: 12px;
+    padding: 0px;
+}
+
+.matrix-action-row {
+    padding: 4px;
+    spacing: 4px;
+}
+
+.matrix-action-box-button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.matrix-action-box-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.matrix-qr-image {
+    margin: 10px 0;
+    border-radius: 8px;
+    background-color: white; 
+    padding: 10px;
+}
+
+.matrix-qr-id-row {
+    spacing: 8px;
+    margin-bottom: 12px;
+}
+
+.matrix-qr-id-label {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #ccc;
+}
+
+.matrix-qr-copy-button {
+    padding: 2px 6px;
+    border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.matrix-copy-button:active {
+.matrix-qr-copy-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
