@@ -4,6 +4,7 @@
         <value nick="web" value="0"/>
         <value nick="element" value="1"/>
         <value nick="fractal" value="2"/>
+        <value nick="schildichat" value="3"/>
     </enum>
 
     <schema id="org.gnome.shell.extensions.matrix-status" path="/org/gnome/shell/extensions/matrix-status/">
@@ -22,7 +23,7 @@
         <key name="client-type" enum="org.gnome.shell.extensions.matrix-status.ClientType">
             <default>'web'</default>
             <summary>Matrix Client Type</summary>
-            <description>Choose between Web (matrix.to), Element (element://) and Fractal (matrix:)</description>
+            <description>Choose between Web (matrix.to), Element (element://), Fractal (matrix:) and SchildiChat (schildichat://)</description>
         </key>
         <key name="generate-qr-code-enable" type="b">
             <default>false</default>

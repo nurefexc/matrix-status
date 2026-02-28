@@ -76,6 +76,10 @@ const MatrixIndicator = GObject.registerClass(
             return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
         }
 
+        _getSchildiChatUrl(roomId = null) {
+            return roomId ? `schildichat://vector/webapp/#/room/${roomId}` : 'schildichat://';
+        }
+
         /**
          * Generate Fractal URI for a given room.
          * Example: matrix:roomid/<encoded_room_id>?action=join&via=<domain>
@@ -106,7 +110,10 @@ const MatrixIndicator = GObject.registerClass(
             const clientType = this._settings.get_enum('client-type');
             let uri;
 
-            if (clientType === 2) {
+            if (clientType === 3) {
+                uri = this._getSchildiChatUrl(roomId);
+            }
+            else if (clientType === 2) {
                 uri = this._getFractalUrl(roomId);
             }
             else if (clientType === 1) {
@@ -541,12 +548,16 @@ const MatrixIndicator = GObject.registerClass(
                     }
                 });
             }
-
             const clientType = this._settings.get_enum('client-type');
-            if (clientType === 1 || clientType === 2) {
+            if (clientType === 1 || clientType === 2 || clientType === 3) {
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-                const clientName = clientType === 1 ? 'Element' : 'Fractal';
-                const iconName = clientType === 1 ? 'element.svg' : 'fractal.svg';
+                const clientConfig = {
+                    1: { name: 'Element', icon: 'element.svg' },
+                    2: { name: 'Fractal', icon: 'fractal.svg' },
+                    3: { name: 'SchildiChat', icon: 'schildichat.svg' }
+                };
+                const clientName = clientConfig[clientType]?.name;
+                const iconName = clientConfig[clientType]?.icon;
 
                 const launchItem = new PopupMenu.PopupMenuItem(`Open ${clientName}`);
 

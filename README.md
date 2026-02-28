@@ -44,7 +44,7 @@ This extension supports GNOME Shell `45` -> `49`.
 - **Modern UI**: Built with native GNOME Shell components (St, Adwaita) and circular avatars for a seamless, modern experience.
 - **Matrix.to Integration**: One-click room opening using universal Matrix links.
 - **Security Indicator**: Visual feedback (lock icon) for rooms with end-to-end encryption (E2EE) enabled.
-- **Direct Client Integration**: Open rooms directly in Element or Fractal.
+- **Direct Client Integration**: Open rooms directly in Element, Fractal or SchildiChat.
 - **Intelligent Filtering**: Automatically displays only relevant rooms, prioritizing unread messages and favorites.
 - **Incremental Sync**: Optimized network usage with `since` token support.
 - **Avatar Support**: Circular avatars with persistent local caching.
