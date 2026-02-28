@@ -32,8 +32,26 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         settings.bind('homeserver-url', homeserverRow, 'text', Gio.SettingsBindFlags.DEFAULT);
         apiGroup.add(homeserverRow);
 
-        const tokenRow = new Adw.PasswordEntryRow({ title: 'Access Token' });
+        // Access Token Row - Itt az EntryRow-t használjuk alapnak
+        const tokenRow = new Adw.PasswordEntryRow({
+            title: 'Access Token',
+        });
         settings.bind('access-token', tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+
+        // Tooltip ikon hozzáadása közvetlenül a sor végére (suffix)
+        // Így nem kell külön sor, és vizuálisan az inputhoz tartozik
+        const tokenHelpIcon = new Gtk.Image({
+            icon_name: 'help-about-symbolic',
+            tooltip_text: 'For Element Desktop users:\n' +
+                '1. Settings > Help & About (bottom left)\n' +
+                '2. Scroll down to Advanced > Access Token\n' +
+                '3. Copy the token\n\n' +
+                '⚠️ Sensitive data!',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['dim-label'] // Diszkrétebb megjelenés
+        });
+
+        tokenRow.add_suffix(tokenHelpIcon);
         apiGroup.add(tokenRow);
 
         // Separator Group for visually dividing sections

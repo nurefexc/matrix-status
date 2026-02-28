@@ -50,7 +50,7 @@ This extension supports GNOME Shell `45` -> `49`.
 - **Avatar Support**: Circular avatars with persistent local caching.
 - **QR Code Sharing**: Integrated QR generator for room IDs.
 
-## Configuration
+### Configuration
 
 Open the extension settings to configure:
 - **Homeserver URL**: Your Matrix homeserver (e.g., `https://matrix.org`).
@@ -58,6 +58,15 @@ Open the extension settings to configure:
 - **Sync Interval**: Frequency of updates (optimized for long polling).
 - **Client Type**: Choose between Web, Element, or Fractal.
 - **QR Code**: Enable or disable QR code sharing.
+
+#### 🔑 How to get your Access Token (Element Desktop)
+
+1. Open **All Settings** and go to **Help and about** at the bottom of the left panel.
+2. Scroll all the way down to **Advanced** and click the arrow in **Access Token** to expand it.
+3. Click the copy button to copy it to the clipboard.
+
+> [!WARNING]
+> **Be careful with your access token. It's sensitive!** Erase from your clipboard and clipboard history after use.
 
 ## 🚀 Roadmap
 
