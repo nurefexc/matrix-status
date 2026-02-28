@@ -36,39 +36,38 @@ This extension supports GNOME Shell `45` -> `49`.
 
 ## Features
 
-- **Real-time Monitoring**: Uses Matrix Sync API for instant message notifications.
+- **Real-time Monitoring**: Uses optimized Matrix Incremental Sync (Long Polling) for instant notifications with minimal network traffic.
+- **Persistent Avatar Cache**: Room and user avatars are cached locally for fast loading and reduced data usage.
 - **Unread Indicators**: Displays unread message counts for rooms in the GNOME panel.
 - **Quick Access**: Direct access to your Matrix rooms from the top panel.
-- **Modern UI**: Built with native GNOME Shell components (St, Adwaita) for a seamless experience.
+- **QR Code Generation**: Easily share room/user links via generated QR codes directly from the menu.
+- **Modern UI**: Built with native GNOME Shell components (St, Adwaita) and circular avatars for a seamless, modern experience.
 - **Matrix.to Integration**: One-click room opening using universal Matrix links.
 - **Security Indicator**: Visual feedback (lock icon) for rooms with end-to-end encryption (E2EE) enabled.
 - **Direct Client Integration**: Open rooms directly in Element or Fractal.
 - **Intelligent Filtering**: Automatically displays only relevant rooms, prioritizing unread messages and favorites.
+- **Incremental Sync**: Optimized network usage with `since` token support.
+- **Avatar Support**: Circular avatars with persistent local caching.
+- **QR Code Sharing**: Integrated QR generator for room IDs.
 
 ## Configuration
 
 Open the extension settings to configure:
 - **Homeserver URL**: Your Matrix homeserver (e.g., `https://matrix.org`).
 - **Access Token**: Your Matrix account's access token.
-- **Sync Interval**: Frequency of updates (default 10s).
+- **Sync Interval**: Frequency of updates (optimized for long polling).
+- **Client Type**: Choose between Web, Element, or Fractal.
+- **QR Code**: Enable or disable QR code sharing.
 
 ## 🚀 Roadmap
 
 The goal of this project is to provide an ultra-lightweight navigation layer for the Matrix network, prioritizing productivity and quick access over message display.
 
-#### Next up
-- Quick Identification (Avatars): Implement and cache room/user avatars in the dropdown for faster visual recognition.
-
-### 🛠️ Phase 1: Navigation Fundamentals (V1.1 – Completed)
-- **Direct Client Integration**: Future support for additional clients like FluffyChat.
-- **Intelligent Filtering**: Optimization and advanced rule sets.
-
-### 🔍 Phase 2: "Search & Access" Turbo
+### 🔍 Phase 1: "Search & Access" Turbo
 - **GNOME Overview Integration**: Access rooms directly from the system's central search (Super key) using an asynchronous cache.
-- **Quick Identification (Avatars)**: Caching room-specific icons in the dropdown menu for faster visual recognition.
 - **SOCKS5 Proxy Support**: Secure network access support for digital nomads and corporate users.
 
-### ⚖️ Phase 3: Scalability and Stability
+### ⚖️ Phase 2: Scalability and Stability
 - **Multi-Account Support**: Monitor multiple Matrix accounts and homeservers simultaneously in a single interface.
 - **Offline Cache**: Room list availability and searchability even without a network connection.
 - **DND Integration**: Synchronization with GNOME's "Do Not Disturb" mode.

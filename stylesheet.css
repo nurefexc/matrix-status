@@ -93,3 +93,42 @@
 .matrix-qr-copy-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
+
+.matrix-room-avatar {
+    border-radius: 99px;
+    background-color: rgba(255, 255, 255, 0.1);
+    width: 24px;
+    height: 24px;
+}
+
+.matrix-room-avatar-default {
+    border-radius: 99px;
+    color: #ccc;
+    background-color: rgba(255, 255, 255, 0.05);
+    width: 24px;
+    height: 24px;
+}
+
+.matrix-room-avatar-container {
+    margin-right: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.matrix-avatar-spinner {
+    width: 16px;
+    height: 16px;
+}
+
+.matrix-icon-container {
+    margin-right: 8px;
+    spacing: 2px;
+}
+
+.matrix-lock-icon {
+    margin-right: 4px;
+    color: #ccc;
+    font-weight: bold;
+}
