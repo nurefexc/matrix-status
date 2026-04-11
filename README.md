@@ -49,6 +49,8 @@ This extension supports GNOME Shell `45` -> `49`.
 - **Incremental Sync**: Optimized network usage with `since` token support.
 - **Avatar Support**: Circular avatars with persistent local caching.
 - **QR Code Sharing**: Integrated QR generator for room IDs.
+- **GNOME Overview Integration**: Access rooms directly from the system's central search (Super key) using an asynchronous cache.
+
 
 ### Configuration
 
@@ -73,7 +75,6 @@ Open the extension settings to configure:
 The goal of this project is to provide an ultra-lightweight navigation layer for the Matrix network, prioritizing productivity and quick access over message display.
 
 ### 🔍 Phase 1: "Search & Access" Turbo
-- **GNOME Overview Integration**: Access rooms directly from the system's central search (Super key) using an asynchronous cache.
 - **SOCKS5 Proxy Support**: Secure network access support for digital nomads and corporate users.
 
 ### ⚖️ Phase 2: Scalability and Stability

@@ -196,7 +196,9 @@ const MatrixIndicator = GObject.registerClass(
                         icon_size: 24,
                         style_class: 'matrix-room-avatar',
                     });
-                    bin.set_child(cachedIcon);
+                    if (bin && !bin.is_finalized) {
+                        bin.set_child(cachedIcon);
+                    }
                     
                     // If cached in memory, still check if it's too old on disk (background update)
                     // but we'll return now to keep UI snappy.
@@ -223,7 +225,9 @@ const MatrixIndicator = GObject.registerClass(
                         icon_size: 24,
                         style_class: 'matrix-room-avatar',
                     });
-                    bin.set_child(avatarIcon);
+                    if (bin && !bin.is_finalized) {
+                        bin.set_child(avatarIcon);
+                    }
                     return;
                 }
 
@@ -281,7 +285,9 @@ const MatrixIndicator = GObject.registerClass(
                         icon_size: 24,
                         style_class: 'matrix-room-avatar',
                     });
-                    bin.set_child(avatarIcon);
+                    if (bin && !bin.is_finalized) {
+                        bin.set_child(avatarIcon);
+                    }
                     return;
                 }
 
@@ -293,7 +299,9 @@ const MatrixIndicator = GObject.registerClass(
                         icon_size: 24,
                         style_class: 'matrix-room-avatar',
                     });
-                    bin.set_child(avatarIcon);
+                    if (bin && !bin.is_finalized) {
+                        bin.set_child(avatarIcon);
+                    }
                     return;
                 }
 
@@ -306,7 +314,9 @@ const MatrixIndicator = GObject.registerClass(
                         icon_size: 24,
                         style_class: 'matrix-room-avatar-default',
                     });
-                    bin.set_child(fallback);
+                    if (bin && !bin.is_finalized) {
+                        bin.set_child(fallback);
+                    }
                 }
             }
         }
@@ -679,105 +689,103 @@ const MatrixIndicator = GObject.registerClass(
                     // Find if room already exists in our map
                     let existingRoom = this._rooms.get(roomId);
 
-                    // If it's a new room with unread/fav, or an update to an existing room
-                    if (unread > 0 || hasFavTag || existingRoom) {
-                        let name = existingRoom?.name || null;
-                        let dmPartnerId = existingRoom?.dmPartnerId || null;
-                        let canonicalAlias = existingRoom?.canonicalAlias || null;
-                        let isEncrypted = existingRoom?.encrypted || false;
-                        let isDirect = existingRoom?.isDirect || false;
-                        let avatarUrl = existingRoom?.avatarUrl || null;
-                        let timestamp = existingRoom?.timestamp || 0;
-                        let isFavorite = hasFavTag || existingRoom?.isFavorite || false;
+                    // Update room metadata (all rooms are cached for search)
+                    let name = existingRoom?.name || null;
+                    let dmPartnerId = existingRoom?.dmPartnerId || null;
+                    let canonicalAlias = existingRoom?.canonicalAlias || null;
+                    let isEncrypted = existingRoom?.encrypted || false;
+                    let isDirect = existingRoom?.isDirect || false;
+                    let avatarUrl = existingRoom?.avatarUrl || null;
+                    let timestamp = existingRoom?.timestamp || 0;
+                    let isFavorite = hasFavTag || existingRoom?.isFavorite || false;
 
-                        // Update metadata if present in this sync
-                        const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
-                        if (nameEv?.content?.name)
-                            name = nameEv.content.name;
+                    // Update metadata if present in this sync
+                    const nameEv = roomData.state?.events?.find(e => e.type === 'm.room.name');
+                    if (nameEv?.content?.name)
+                        name = nameEv.content.name;
 
-                        const aliasEv = roomData.state?.events?.find(e => e.type === 'm.room.canonical_alias');
-                        if (aliasEv?.content?.alias)
-                            canonicalAlias = aliasEv.content.alias;
+                    const aliasEv = roomData.state?.events?.find(e => e.type === 'm.room.canonical_alias');
+                    if (aliasEv?.content?.alias)
+                        canonicalAlias = aliasEv.content.alias;
 
-                        if (roomData.state?.events?.some(e => e.type === 'm.room.encryption'))
-                            isEncrypted = true;
+                    if (roomData.state?.events?.some(e => e.type === 'm.room.encryption'))
+                        isEncrypted = true;
 
-                        if (roomData.is_direct !== undefined)
-                            isDirect = roomData.is_direct;
+                    if (roomData.is_direct !== undefined)
+                        isDirect = roomData.is_direct;
 
-                        if (roomData.summary?.['m.heroes']?.length > 0) {
-                            const heroes = roomData.summary['m.heroes'];
-                            if (!name && heroes.length === 1) {
-                                dmPartnerId = heroes[0];
-                                isDirect = true;
-                            }
-
-                            if (!name) {
-                                const heroNames = heroes.map((h) => {
-                                    const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
-                                    return m?.content?.displayname || h.split(':')[0].replace('@', '');
-                                });
-                                name = heroNames.join(', ');
-                            }
+                    if (roomData.summary?.['m.heroes']?.length > 0) {
+                        const heroes = roomData.summary['m.heroes'];
+                        if (!name && heroes.length === 1) {
+                            dmPartnerId = heroes[0];
+                            isDirect = true;
                         }
 
-                        const lastEvent = roomData.timeline?.events?.[roomData.timeline.events.length - 1];
-                        if (lastEvent?.origin_server_ts)
-                            timestamp = lastEvent.origin_server_ts;
-
-                        const avatarEv = roomData.state?.events?.find(e => e.type === 'm.room.avatar');
-                        if (avatarEv?.content?.url) {
-                            avatarUrl = this._getMxcThumbnailUrl(avatarEv.content.url);
+                        if (!name) {
+                            const heroNames = heroes.map((h) => {
+                                const m = roomData.state?.events?.find(e => e.type === 'm.room.member' && e.state_key === h);
+                                return m?.content?.displayname || h.split(':')[0].replace('@', '');
+                            });
+                            name = heroNames.join(', ');
                         }
-
-                        // DM Avatar logic
-                        if (!avatarUrl && isDirect) {
-                            // Try heroes
-                            if (roomData.summary?.['m.heroes']?.length > 0) {
-                                // Filter out self from heroes to avoid using own avatar in DM
-                                const partnerHero = roomData.summary['m.heroes'].find(h => this._userId && h !== this._userId);
-                                if (partnerHero) {
-                                    const memberEv = roomData.state?.events?.find(e => 
-                                        e.type === 'm.room.member' && e.state_key === partnerHero
-                                    );
-                                    if (memberEv?.content?.avatar_url) {
-                                        avatarUrl = this._getMxcThumbnailUrl(memberEv.content.avatar_url);
-                                    }
-                                }
-                            }
-                            
-                            // Try any member besides self
-                            if (!avatarUrl && this._userId) {
-                                const anyMemberWithAvatar = roomData.state?.events?.find(e => 
-                                    e.type === 'm.room.member' && 
-                                    e.content?.avatar_url && 
-                                    e.state_key !== this._userId
-                                );
-                                if (anyMemberWithAvatar?.content?.avatar_url) {
-                                    avatarUrl = this._getMxcThumbnailUrl(anyMemberWithAvatar.content.avatar_url);
-                                }
-                            }
-                        }
-
-                        const updatedRoom = {
-                            name: name || 'Unnamed Room',
-                            id: roomId,
-                            dmPartnerId,
-                            canonicalAlias,
-                            unread,
-                            timestamp,
-                            encrypted: isEncrypted,
-                            isDirect,
-                            avatarUrl,
-                            isFavorite,
-                        };
-
-                        this._rooms.set(roomId, updatedRoom);
                     }
+
+                    const lastEvent = roomData.timeline?.events?.[roomData.timeline.events.length - 1];
+                    if (lastEvent?.origin_server_ts)
+                        timestamp = lastEvent.origin_server_ts;
+
+                    const avatarEv = roomData.state?.events?.find(e => e.type === 'm.room.avatar');
+                    if (avatarEv?.content?.url) {
+                        avatarUrl = this._getMxcThumbnailUrl(avatarEv.content.url);
+                    }
+
+                    // DM Avatar logic
+                    if (!avatarUrl && isDirect) {
+                        // Try heroes
+                        if (roomData.summary?.['m.heroes']?.length > 0) {
+                            // Filter out self from heroes to avoid using own avatar in DM
+                            const partnerHero = roomData.summary['m.heroes'].find(h => this._userId && h !== this._userId);
+                            if (partnerHero) {
+                                const memberEv = roomData.state?.events?.find(e => 
+                                    e.type === 'm.room.member' && e.state_key === partnerHero
+                                );
+                                if (memberEv?.content?.avatar_url) {
+                                    avatarUrl = this._getMxcThumbnailUrl(memberEv.content.avatar_url);
+                                }
+                            }
+                        }
+                        
+                        // Try any member besides self
+                        if (!avatarUrl && this._userId) {
+                            const anyMemberWithAvatar = roomData.state?.events?.find(e => 
+                                e.type === 'm.room.member' && 
+                                e.content?.avatar_url && 
+                                e.state_key !== this._userId
+                            );
+                            if (anyMemberWithAvatar?.content?.avatar_url) {
+                                avatarUrl = this._getMxcThumbnailUrl(anyMemberWithAvatar.content.avatar_url);
+                            }
+                        }
+                    }
+
+                    const updatedRoom = {
+                        name: name || 'Unnamed Room',
+                        id: roomId,
+                        dmPartnerId,
+                        canonicalAlias,
+                        unread,
+                        timestamp,
+                        encrypted: isEncrypted,
+                        isDirect,
+                        avatarUrl,
+                        isFavorite,
+                    };
+
+                    this._rooms.set(roomId, updatedRoom);
                 }
             }
 
-            // Convert map to list and filter
+            // Convert map to list and filter for the menu
             let roomList = Array.from(this._rooms.values())
                 .filter(r => r.unread > 0 || r.isFavorite || r.id === this._openQrRoomId);
 
@@ -798,6 +806,106 @@ const MatrixIndicator = GObject.registerClass(
             }
         }
     });
+/**
+ * Matrix Search Provider
+ * Final corrected version for GNOME 45+ compatibility.
+ */
+const MatrixSearchProvider = GObject.registerClass(
+    class MatrixSearchProvider extends GObject.Object {
+        _init(indicator) {
+            super._init();
+            this._indicator = indicator;
+            this.id = 'matrix-status-search-provider';
+
+            // Use the extension's icon for the section header
+            const iconPath = GLib.build_filenamev([this._indicator._path, 'icons', 'matrix.svg']);
+            const appIcon = Gio.Icon.new_for_string(iconPath);
+
+            this.appInfo = {
+                get_name: () => 'Matrix Rooms',
+                get_icon: () => appIcon,
+                get_id: () => this.id,
+                should_show: () => true
+            };
+        }
+
+        getInitialResultSet(terms) {
+            return this._filterRooms(terms);
+        }
+
+        getSubsearchResultSet(previousResults, terms) {
+            return this._filterRooms(terms);
+        }
+
+        filterResults(results, maxResults) {
+            return results.slice(0, maxResults);
+        }
+
+        _filterRooms(terms) {
+            if (!this._indicator._rooms) return [];
+            const query = terms.join(' ').toLowerCase();
+            const rooms = Array.from(this._indicator._rooms.values());
+
+            return rooms
+                .filter(room =>
+                    (room.name && room.name.toLowerCase().includes(query)) ||
+                    (room.canonicalAlias && room.canonicalAlias.toLowerCase().includes(query))
+                )
+                .map(room => room.id);
+        }
+
+        getResultMetas(roomIds) {
+            return roomIds.map(id => {
+                const room = this._indicator._rooms.get(id);
+                const isDirect = room?.isDirect ?? false;
+                const fallbackIconName = isDirect ? 'avatar-default-symbolic' : 'system-users-symbolic';
+
+                return {
+                    id: id,
+                    name: room ? room.name : 'Unknown Room',
+                    description: room ? (room.canonicalAlias || 'Matrix Room') : '',
+                    createIcon: (size) => {
+                        let gicon = null;
+
+                        // Megpróbáljuk betölteni a cache-elt avatart
+                        if (room?.avatarUrl) {
+                            const urlHash = GLib.compute_checksum_for_string(GLib.ChecksumType.MD5, room.avatarUrl, -1);
+                            const cachePath = GLib.build_filenamev([this._indicator._cachePath, urlHash]);
+                            const cacheFile = Gio.File.new_for_path(cachePath);
+
+                            if (cacheFile.query_exists(null)) {
+                                gicon = Gio.FileIcon.new(cacheFile);
+                            } else {
+                                // Ha nincs a cache-ben, elindítjuk a letöltést a háttérben
+                                // Így a következő keresésnél már ott lesz
+                                this._indicator._loadAvatar(room.avatarUrl, null, fallbackIconName);
+                            }
+                        }
+
+                        // Ha nincs avatar, használjuk a fallback szimbolikus ikont
+                        if (!gicon) {
+                            gicon = Gio.Icon.new_for_string(fallbackIconName);
+                        }
+
+                        return new St.Icon({
+                            gicon: gicon,
+                            icon_size: size > 0 ? size : 64,
+                            style_class: 'search-result-icon'
+                        });
+                    }
+                };
+            });
+        }
+
+        activateResult(roomId) {
+            this._indicator._openMatrixClient(roomId);
+        }
+
+        launchSearch(terms) {
+            this._indicator._openMatrixClient();
+        }
+    }
+);
 
 /**
  * Main extension lifecycle management (enable/disable).
@@ -810,6 +918,15 @@ export default class MatrixExtension extends Extension {
         this._settings = this.getSettings();
         this._indicator = new MatrixIndicator(this._settings, this.path);
         Main.panel.addToStatusArea('matrix-status', this._indicator);
+
+        // --- Search Provider Setup ---
+        this._searchProvider = new MatrixSearchProvider(this._indicator);
+
+        // This registers it as a standalone source in the overview
+        if (Main.overview.searchController) {
+            Main.overview.searchController.addProvider(this._searchProvider);
+        }
+
         this._indicator.refresh();
 
         this._settings.connect('changed::sync-interval', () => this._restartTimer());
@@ -833,6 +950,10 @@ export default class MatrixExtension extends Extension {
     }
 
     disable() {
+        if (Main.overview.searchController) {
+            Main.overview.searchController.removeProvider(this._searchProvider);
+        }
+
         if (this._timeout) {
             clearInterval(this._timeout);
             this._timeout = null;
