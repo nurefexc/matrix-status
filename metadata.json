@@ -2,13 +2,14 @@
   "name": "Matrix Status Monitor",
   "description": "High-performance Matrix notification monitor for GNOME Shell.",
   "uuid": "matrix-status@nurefexc.com",
-  "version": 5,
+  "version": 6,
   "shell-version": [
     "45",
     "46",
     "47",
     "48",
-    "49"
+    "49",
+    "50"
   ],
   "url": "https://github.com/nurefexc/matrix-status",
   "gettext-domain": "matrix-status",
