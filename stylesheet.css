@@ -1,120 +1,66 @@
+/* =========================================================
+   Matrix Status Monitor – Panel & Menu Stylesheet
+   GNOME Shell 45–50  |  Dark panel assumed
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   Panel button
+   --------------------------------------------------------- */
 .panel-button {
-    transition: all 0.25s ease;
+    transition: background-color 200ms ease;
     border-radius: 99px;
     margin: 3px 4px;
 }
 
-/* Active state: Dark grey capsule background */
+/* Unread pill: subtle capsule that blends with the panel */
 .matrix-pill-active {
-    background-color: rgba(255, 255, 255, 0.15); /* Subtle translucent white/grey */
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
-
-/* Hover effect */
 .matrix-pill-active:hover {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.20);
 }
 
-/* Highlight remains next to the name in the menu */
+/* ---------------------------------------------------------
+   Room rows
+   --------------------------------------------------------- */
 .popup-menu-item b {
     font-weight: bold;
 }
 
-.popup-menu-icon {
-    margin-right: 8px;
-    padding: 2px;
+/* Avatar + lock icon wrapper */
+.matrix-icon-container {
+    spacing: 3px;
+    margin-right: 10px;
 }
 
-.matrix-action-button {
-    padding: 3px;
-    border-radius: 8px;
-    margin-left: 4px;
-    min-width: 24px;
-    height: 24px;
-    transition: background-color 0.2s ease;
-}
-
-.matrix-action-button:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-.matrix-action-button:active {
-    background-color: rgba(255, 255, 255, 0.25);
-}
-
-.matrix-action-box-item {
-    background-color: rgba(255, 255, 255, 0.08);
-    margin: 2px 8px 6px 8px;
-    border-radius: 12px;
-    padding: 0px;
-}
-
-.matrix-action-row {
-    padding: 4px;
-    spacing: 4px;
-}
-
-.matrix-action-box-button {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.9em;
-    font-weight: bold;
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.matrix-action-box-button:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-.matrix-qr-image {
-    margin: 10px 0;
-    border-radius: 8px;
-    background-color: white; 
-    padding: 10px;
-}
-
-.matrix-qr-id-row {
-    spacing: 8px;
-    margin-bottom: 12px;
-}
-
-.matrix-qr-id-label {
-    font-size: 0.85em;
-    font-weight: bold;
-    color: #ccc;
-}
-
-.matrix-qr-copy-button {
-    padding: 2px 6px;
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.matrix-qr-copy-button:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+/* Circular avatar */
+.matrix-room-avatar-container {
+    width: 28px;
+    height: 28px;
+    border-radius: 99px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.07);
 }
 
 .matrix-room-avatar {
     border-radius: 99px;
-    background-color: rgba(255, 255, 255, 0.1);
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
+    /* Fill the container exactly so overflow:hidden clips to a circle */
+    min-width: 28px;
+    min-height: 28px;
 }
 
 .matrix-room-avatar-default {
     border-radius: 99px;
-    color: #ccc;
-    background-color: rgba(255, 255, 255, 0.05);
-    width: 24px;
-    height: 24px;
-}
-
-.matrix-room-avatar-container {
-    margin-right: 4px;
-    width: 24px;
-    height: 24px;
-    border-radius: 99px;
-    overflow: hidden;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    color: rgba(255, 255, 255, 0.45);
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 4px;
 }
 
 .matrix-avatar-spinner {
@@ -122,13 +68,138 @@
     height: 16px;
 }
 
-.matrix-icon-container {
-    margin-right: 8px;
-    spacing: 2px;
+/* Lock icon – always reserving space, hidden when not encrypted */
+.matrix-lock-icon {
+    color: rgba(255, 255, 255, 0.45);
+    margin-right: 2px;
 }
 
-.matrix-lock-icon {
-    margin-right: 4px;
-    color: #ccc;
-    font-weight: bold;
+/* ---------------------------------------------------------
+   Action button (QR / copy – right side of each room row)
+   --------------------------------------------------------- */
+.matrix-action-button {
+    padding: 4px;
+    border-radius: 6px;
+    margin-left: 6px;
+    min-width: 26px;
+    height: 26px;
+    color: rgba(255, 255, 255, 0.55);
+    transition: background-color 150ms ease,
+    color 150ms ease;
+}
+.matrix-action-button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.90);
+}
+.matrix-action-button:active {
+    background-color: rgba(255, 255, 255, 0.20);
+}
+
+/* ---------------------------------------------------------
+   Action box (QR panel that expands below a room row)
+   --------------------------------------------------------- */
+.matrix-action-box-item {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 0 10px 6px 10px;
+    border-radius: 10px;
+    padding: 8px 0 4px 0;
+}
+
+/* QR image – white background so the code is scannable */
+.matrix-qr-image {
+    margin: 4px auto 8px auto;
+    border-radius: 8px;
+    background-color: #ffffff;
+    padding: 8px;
+}
+
+/* Room / user ID label below the QR image */
+.matrix-qr-id-row {
+    spacing: 6px;
+    margin: 0 12px 10px 12px;
+}
+.matrix-qr-id-label {
+    font-size: 0.82em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.60);
+}
+
+/* Copy button inside the QR panel */
+.matrix-qr-copy-button {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.70);
+    transition: background-color 150ms ease;
+}
+.matrix-qr-copy-button:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* ---------------------------------------------------------
+   Profile header (top of the menu)
+   --------------------------------------------------------- */
+.matrix-profile-header {
+    padding: 10px 14px 8px 14px;
+}
+
+.matrix-profile-box {
+    spacing: 10px;
+}
+
+/* Larger avatar for the profile section */
+.matrix-profile-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 99px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.matrix-profile-displayname {
+    font-weight: 700;
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.matrix-profile-userid {
+    font-size: 0.78em;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Action buttons in the profile row (copy, QR) */
+.matrix-profile-action-btn {
+    padding: 4px;
+    border-radius: 6px;
+    min-width: 26px;
+    height: 26px;
+    color: rgba(255, 255, 255, 0.50);
+    transition: background-color 150ms ease,
+    color 150ms ease;
+}
+.matrix-profile-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.90);
+}
+.matrix-profile-action-btn:active {
+    background-color: rgba(255, 255, 255, 0.20);
+}
+
+/* QR panel specific to the profile section */
+.matrix-profile-qr-item {
+    margin: 0 10px 6px 10px;
+}
+.matrix-profile-qr-container {
+    spacing: 0;
+}
+
+/* Icon inside the profile avatar bin */
+.matrix-profile-avatar StIcon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 99px;
 }

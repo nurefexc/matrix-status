@@ -1,174 +1,173 @@
 /*
  * Matrix Status Monitor – Preferences UI
  *
- * Here we define the Adwaita (libadwaita) interface for editing
- * GSettings keys: homeserver, token, sync interval, client type.
+ * Adwaita (libadwaita) interface for editing GSettings keys.
+ *
+ * Layout:
+ *  1. Matrix API       – homeserver URL, access token
+ *  2. General Settings – sync interval, preferred client, feature toggles
+ *  3. Links & About    – GitHub, personal site
  */
+
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
-/**
- * Preferences window structure.
- * Layout:
- * 1) Matrix API (homeserver, access token)
- * 2) General settings (sync interval, client selector)
- * 3) Links/Info
- */
 export default class MatrixStatusPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
-        const page = new Adw.PreferencesPage();
 
-        // Matrix API Group
+        window.set_default_size(640, 600);
+
+        const page = new Adw.PreferencesPage({
+            title: 'Settings',
+            icon_name: 'preferences-system-symbolic',
+        });
+        window.add(page);
+
+        // ----------------------------------------------------------------
+        // Group 1 – Matrix API
+        // ----------------------------------------------------------------
         const apiGroup = new Adw.PreferencesGroup({
-            title: 'Matrix API Configuration',
-            description: 'Enter your homeserver and access token',
+            title: 'Matrix API',
+            description: 'Your homeserver address and account access token',
         });
         page.add(apiGroup);
 
-        const homeserverRow = new Adw.EntryRow({ title: 'Homeserver URL' });
+        const homeserverRow = new Adw.EntryRow({
+            title: 'Homeserver URL',
+            show_apply_button: false,
+        });
         settings.bind('homeserver-url', homeserverRow, 'text', Gio.SettingsBindFlags.DEFAULT);
         apiGroup.add(homeserverRow);
 
-        // Access Token Row - Itt az EntryRow-t használjuk alapnak
-        const tokenRow = new Adw.PasswordEntryRow({
-            title: 'Access Token',
-        });
+        const tokenRow = new Adw.PasswordEntryRow({ title: 'Access Token' });
         settings.bind('access-token', tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
 
-        // Tooltip ikon hozzáadása közvetlenül a sor végére (suffix)
-        // Így nem kell külön sor, és vizuálisan az inputhoz tartozik
+        // Help icon – shows how to find the token in Element
         const tokenHelpIcon = new Gtk.Image({
             icon_name: 'help-about-symbolic',
-            tooltip_text: 'For Element Desktop users:\n' +
-                '1. Settings > Help & About (bottom left)\n' +
-                '2. Scroll down to Advanced > Access Token\n' +
-                '3. Copy the token\n\n' +
-                '⚠️ Sensitive data!',
+            tooltip_text:
+                'How to find your access token in Element Desktop:\n' +
+                '1. Open Settings → Help & About (bottom-left)\n' +
+                '2. Scroll to Advanced → Access Token\n' +
+                '3. Click the copy button\n\n' +
+                '⚠️  Treat this like a password – clear your clipboard after use.',
             valign: Gtk.Align.CENTER,
-            css_classes: ['dim-label'] // Diszkrétebb megjelenés
+            css_classes: ['dim-label'],
         });
-
         tokenRow.add_suffix(tokenHelpIcon);
         apiGroup.add(tokenRow);
 
-        // Separator Group for visually dividing sections
-        page.add(new Adw.PreferencesGroup());
-
-        // Client Settings
-        const configGroup = new Adw.PreferencesGroup({
-            title: 'General Settings',
-        });
+        // ----------------------------------------------------------------
+        // Group 2 – General Settings
+        // ----------------------------------------------------------------
+        const configGroup = new Adw.PreferencesGroup({ title: 'General Settings' });
         page.add(configGroup);
 
+        // Sync interval spinner
         const intervalRow = new Adw.ActionRow({
-            title: 'Sync Interval (seconds)',
-            subtitle: 'How often to check for new messages',
+            title: 'Sync Interval',
+            subtitle: 'How often to poll for new messages (seconds)',
         });
         const intervalSpin = new Gtk.SpinButton({
-            adjustment: new Gtk.Adjustment({ lower: 5, upper: 3600, step_increment: 5, page_increment: 10 }),
+            adjustment: new Gtk.Adjustment({
+                lower: 5,
+                upper: 3600,
+                step_increment: 5,
+                page_increment: 30,
+            }),
             valign: Gtk.Align.CENTER,
+            width_chars: 5,
         });
         settings.bind('sync-interval', intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         intervalRow.add_suffix(intervalSpin);
         configGroup.add(intervalRow);
 
+        // Preferred client selector
         const clientTypeRow = new Adw.ComboRow({
             title: 'Preferred Client',
-            subtitle: 'Choose which client to use when opening rooms',
+            subtitle: 'Application to open when clicking a room',
         });
-
         const clientModel = new Gtk.StringList({
             strings: ['Web (matrix.to)', 'Element', 'Fractal', 'SchildiChat'],
         });
-        clientTypeRow.model = clientModel;
-
+        clientTypeRow.model    = clientModel;
         clientTypeRow.selected = settings.get_enum('client-type');
         clientTypeRow.connect('notify::selected', () => {
             settings.set_enum('client-type', clientTypeRow.selected);
         });
         configGroup.add(clientTypeRow);
 
-        const qrRow = new Adw.SwitchRow({
-            title: 'Enable QR Code Generation',
-            subtitle: 'Show a button to generate and display room QR codes',
+        // Desktop notifications toggle
+        const notificationsRow = new Adw.SwitchRow({
+            title: 'Desktop Notifications',
+            subtitle: 'Show GNOME Shell notifications for new messages',
         });
-        settings.bind('generate-qr-code-enable', qrRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(
+            'notifications-enable', notificationsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        configGroup.add(notificationsRow);
+
+        // QR code generation toggle
+        const qrRow = new Adw.SwitchRow({
+            title: 'QR Code Generation',
+            subtitle: 'Add a QR button to rooms and your profile header',
+        });
+        settings.bind(
+            'generate-qr-code-enable', qrRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         configGroup.add(qrRow);
 
-        // Separator Group
-        page.add(new Adw.PreferencesGroup());
-
-        // Project Links
+        // ----------------------------------------------------------------
+        // Group 3 – Links & About
+        // ----------------------------------------------------------------
         const linksGroup = new Adw.PreferencesGroup({ title: 'Links & About' });
         page.add(linksGroup);
 
-        // GitHub Repository
-        const repoRow = new Adw.ActionRow({
-            title: 'Source Code',
-            subtitle: 'View the project on GitHub',
-        });
+        const links = [
+            {
+                title:    'Source Code',
+                subtitle: 'View the project on GitHub',
+                label:    'GitHub',
+                uri:      'https://github.com/nurefexc/matrix-status',
+                accent:   true,
+            },
+            {
+                title:    'GitHub Profile',
+                subtitle: 'Other projects by nurefexc',
+                label:    'nurefexc',
+                uri:      'https://github.com/nurefexc',
+                accent:   false,
+            },
+            {
+                title:    'Personal Website',
+                subtitle: 'nurefexc.com',
+                label:    'Visit',
+                uri:      'https://nurefexc.com',
+                accent:   false,
+            },
+        ];
 
-        const repoBtn = new Gtk.Button({
-            child: new Adw.ButtonContent({
-                icon_name: 'external-link-symbolic',
-                label: 'GitHub',
-            }),
-            valign: Gtk.Align.CENTER,
-            css_classes: ['suggested-action'],
-        });
-
-        repoBtn.connect('clicked', () => {
-            Gio.AppInfo.launch_default_for_uri('https://github.com/nurefexc/matrix-status', null);
-        });
-
-        repoRow.add_suffix(repoBtn);
-        linksGroup.add(repoRow);
-
-        // GitHub Profile
-        const profileRow = new Adw.ActionRow({
-            title: 'GitHub Profile',
-            subtitle: 'Check out my other projects',
-        });
-
-        const profileBtn = new Gtk.Button({
-            child: new Adw.ButtonContent({
-                icon_name: 'external-link-symbolic',
-                label: 'nurefexc',
-            }),
-            valign: Gtk.Align.CENTER,
-        });
-
-        profileBtn.connect('clicked', () => {
-            Gio.AppInfo.launch_default_for_uri('https://github.com/nurefexc', null);
-        });
-
-        profileRow.add_suffix(profileBtn);
-        linksGroup.add(profileRow);
-
-        // Website
-        const websiteRow = new Adw.ActionRow({
-            title: 'Personal Website',
-            subtitle: 'Visit nurefexc.com',
-        });
-
-        const websiteBtn = new Gtk.Button({
-            child: new Adw.ButtonContent({
-                icon_name: 'external-link-symbolic',
-                label: 'nurefexc.com',
-            }),
-            valign: Gtk.Align.CENTER,
-        });
-
-        websiteBtn.connect('clicked', () => {
-            Gio.AppInfo.launch_default_for_uri('https://nurefexc.com', null);
-        });
-
-        websiteRow.add_suffix(websiteBtn);
-        linksGroup.add(websiteRow);
-
-        window.add(page);
+        for (const link of links) {
+            const row = new Adw.ActionRow({
+                title:    link.title,
+                subtitle: link.subtitle,
+                activatable: true,
+            });
+            const btn = new Gtk.Button({
+                child: new Adw.ButtonContent({
+                    icon_name: 'external-link-symbolic',
+                    label:     link.label,
+                }),
+                valign:      Gtk.Align.CENTER,
+                css_classes: link.accent ? ['suggested-action'] : [],
+            });
+            btn.connect('clicked', () => {
+                Gio.AppInfo.launch_default_for_uri(link.uri, null);
+            });
+            row.add_suffix(btn);
+            row.set_activatable_widget(btn);
+            linksGroup.add(row);
+        }
     }
 }
