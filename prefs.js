@@ -74,10 +74,10 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
             subtitle: 'Application to open when clicking a room',
         });
         const clientModel = new Gtk.StringList({
-            strings: ['Web (matrix.to)', 'Element', 'Fractal', 'SchildiChat'],
+            strings: ['Web (matrix.to)', 'Element', 'Fractal', 'SchildiChat', 'NeoChat'],
         });
         clientTypeRow.model = clientModel;
-        clientTypeRow.selected = Math.max(0, Math.min(settings.get_enum('client-type'), 3));
+        clientTypeRow.selected = Math.max(0, Math.min(settings.get_enum('client-type'), 4));
         clientTypeRow.connect('notify::selected', () => {
             settings.set_enum('client-type', clientTypeRow.selected);
         });

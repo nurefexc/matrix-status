@@ -173,6 +173,19 @@ const MatrixIndicator = GObject.registerClass(
         }
 
         /**
+         * Build a NeoChat-compatible matrix: URI for a given room.
+         * Format: matrix:u/<encoded-id>?action=chat
+         */
+        _getNeoChatUrl(roomId = null) {
+            if (!roomId) return 'matrix:';
+            const encodedId = roomId.replace(/:/g, '%3A').replace(/^!/, '');
+            // roomId could be !roomid:server.com or @user:server.com
+            // neochat uses matrix:u/user%3Aserver.com?action=chat or matrix:roomid/roomid%3Aserver.com?action=chat
+            const prefix = roomId.startsWith('@') ? 'u' : 'roomid';
+            return `matrix:${prefix}/${encodedId}?action=chat`;
+        }
+
+        /**
          * Build a Fractal-compatible matrix: URI for a given room.
          * Format: matrix:roomid/<encoded-id>?action=join&via=<domain>
          */
@@ -186,10 +199,11 @@ const MatrixIndicator = GObject.registerClass(
 
         _openMatrixClient(roomId = null) {
             const t = this._settings.get_enum('client-type');
-            const uri = t === 3 ? this._getSchildiChatUrl(roomId)
-                : t === 2 ? this._getFractalUrl(roomId)
-                    : t === 1 ? this._getElementUrl(roomId)
-                        : this._getWebUrl(roomId);
+            const uri = t === 4 ? this._getNeoChatUrl(roomId)
+                : t === 3 ? this._getSchildiChatUrl(roomId)
+                    : t === 2 ? this._getFractalUrl(roomId)
+                        : t === 1 ? this._getElementUrl(roomId)
+                            : this._getWebUrl(roomId);
             Gio.AppInfo.launch_default_for_uri(uri, null);
         }
 
@@ -771,11 +785,12 @@ const MatrixIndicator = GObject.registerClass(
             }
 
             const clientType = this._settings.get_enum('client-type');
-            if (clientType >= 1 && clientType <= 3) {
+            if (clientType >= 1 && clientType <= 4) {
                 const cfg = {
                     1: {name: 'Element', icon: 'element.svg'},
                     2: {name: 'Fractal', icon: 'fractal.svg'},
                     3: {name: 'SchildiChat', icon: 'schildichat.svg'},
+                    4: {name: 'NeoChat', icon: 'neochat.svg'},
                 }[clientType];
 
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
