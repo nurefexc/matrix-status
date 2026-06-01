@@ -44,7 +44,7 @@ This extension supports GNOME Shell `45` → `50`.
 - **Persistent Avatar Cache**: Room and user avatars are cached locally (3-hour TTL) for fast loading and reduced data usage.
 - **Unread Indicators**: Displays unread message counts per room; bold text for direct mentions and highlights.
 - **Security Indicator**: Lock icon for rooms with end-to-end encryption (E2EE) enabled.
-- **Direct Client Integration**: Open rooms directly in Element, SchildiChat, Fractal, or via matrix.to.
+- **Direct Client Integration**: Open rooms directly in Element, SchildiChat, Fractal, NeoChat or via matrix.to.
 - **GNOME Overview Search**: Access rooms from the system search (Super key) using an async-backed cache.
 - **Incremental Sync**: Optimized network usage with `since` token support.
 
@@ -72,7 +72,7 @@ Open the extension settings to configure:
 - **Homeserver URL**: Your Matrix homeserver (e.g., `https://matrix.org`).
 - **Access Token**: Your Matrix account's access token.
 - **Sync Interval**: How often to poll for updates (minimum 5 seconds).
-- **Preferred Client**: Choose between Web (matrix.to), Element, Fractal, or SchildiChat.
+- **Preferred Client**: Choose between Web (matrix.to), Element, Fractal, SchildiChat, or NeoChat.
 - **QR Code Generation**: Enable or disable QR code buttons for rooms and your profile.
 - **Desktop Notifications**: Enable or disable GNOME Shell message tray notifications.
 
