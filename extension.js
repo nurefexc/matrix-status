@@ -27,6 +27,7 @@ import { MatrixClient } from './matrix.js';
 import * as Utils from './utils.js';
 import { SETTINGS_KEYS, SYNC_FILTER } from './constants.js';
 import { getClientById } from './clients/index.js';
+import QRCode from './vendor/qrcode.js';
 
 // ---------------------------------------------------------------------------
 // MatrixIndicator
@@ -409,7 +410,7 @@ const MatrixIndicator = GObject.registerClass(
         }
 
         _getMatrixToUrlFor(room) {
-            return `https://matrix.to/#/${this._getPrettyId(room)}`;
+            return `https://matrix.to/#/${Utils.getPrettyId(room)}`;
         }
 
         async _fillQrContainerForUrl(container, dataUrl, labelText) {
@@ -421,26 +422,58 @@ const MatrixIndicator = GObject.registerClass(
             spinner.play();
 
             try {
-                const url = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(dataUrl)}`;
-                const res = await this._matrixClient.fetchBytes(url, false);
+                const qrCode = new QRCode({
+                    content: dataUrl,
+                    padding: 1,
+                    width: 256,
+                    height: 256,
+                    color: '#000000',
+                    background: '#ffffff',
+                    ecl: 'M',
+                });
+
+                const [file, stream] = Gio.File.new_tmp('matrix-qr-XXXXXX.svg');
+                const svgData = qrCode.svg();
+                await new Promise((resolve, reject) => {
+                    file.replace_contents_async(
+                        new TextEncoder().encode(svgData),
+                        null,
+                        false,
+                        Gio.FileCreateFlags.REPLACE_DESTINATION,
+                        null,
+                        (f, r) => {
+                            try {
+                                f.replace_contents_finish(r);
+                                resolve();
+                            } catch (e) {
+                                reject(e);
+                            }
+                        }
+                    );
+                });
+
                 spinner.destroy();
 
-                if (!res || res.status !== 200) {
-                    container.add_child(new St.Label({
-                        text: 'Error generating QR code',
-                        x_align: Clutter.ActorAlign.CENTER,
-                    }));
-                    return;
-                }
-
-                const bytes = res.bytes;
-
-                container.add_child(new St.Icon({
-                    gicon: Gio.BytesIcon.new(bytes),
-                    icon_size: 160,
-                    x_align: Clutter.ActorAlign.CENTER,
+                const qrWidget = new St.Widget({
                     style_class: 'matrix-qr-image',
-                }));
+                    style: `
+                        background-image: url("${file.get_uri()}");
+                        background-size: contain;
+                        width: 180px;
+                        height: 180px;
+                    `,
+                    x_align: Clutter.ActorAlign.CENTER,
+                });
+                container.add_child(qrWidget);
+
+                // We keep a reference to delete the file when the widget is destroyed
+                qrWidget.connect('destroy', () => {
+                    try {
+                        file.delete_async(GLib.PRIORITY_LOW, null, null);
+                    } catch (e) {
+                        Utils.warn(`Failed to delete temp QR file: ${e.message}`);
+                    }
+                });
 
                 const idRow = new St.BoxLayout({
                     x_expand: true,
@@ -470,8 +503,11 @@ const MatrixIndicator = GObject.registerClass(
                 } catch (_) {
                 }
 
-                if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    Utils.error(`QR generation error: ${e.message}`);
+                Utils.error(`QR generation error: ${e.message}`);
+                container.add_child(new St.Label({
+                    text: 'Error generating QR code',
+                    x_align: Clutter.ActorAlign.CENTER,
+                }));
             }
         }
 
@@ -485,7 +521,7 @@ const MatrixIndicator = GObject.registerClass(
                 }
 
                 if (this._openQrRoomId) {
-                    for (const item of this.menu.getMenuItems()) {
+                    for (const item of this.menu._getMenuItems()) {
                         if (item._actionItem) {
                             item._actionItem.destroy();
                             item._actionItem = null;
@@ -513,14 +549,14 @@ const MatrixIndicator = GObject.registerClass(
             const qrContainer = new St.BoxLayout({vertical: true, x_expand: true});
             actionItem.add_child(qrContainer);
 
-            const items = this.menu.getMenuItems();
+            const items = this.menu._getMenuItems();
             this.menu.addMenuItem(actionItem, items.indexOf(roomItem) + 1);
             roomItem._actionItem = actionItem;
 
             this._fillQrContainerForUrl(
                 qrContainer,
                 this._getMatrixToUrlFor(room),
-                this._getPrettyId(room)
+                Utils.getPrettyId(room)
             );
         }
 
@@ -672,7 +708,7 @@ const MatrixIndicator = GObject.registerClass(
                             actionButton.child.icon_name = this._openQrRoomId === room.id
                                 ? 'view-conceal-symbolic' : 'qr-code-symbolic';
                         } else {
-                            this._copyToClipboard(this._getPrettyId(room));
+                            this._copyToClipboard(Utils.getPrettyId(room));
                             this.menu.close();
                         }
                         return Clutter.EVENT_STOP;
