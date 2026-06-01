@@ -29,7 +29,7 @@ export default class MatrixSearchProvider {
     }
 
     _filterRooms(terms) {
-        if (!this._indicator._rooms)
+        if (!this._indicator || !this._indicator._rooms)
             return [];
         const query = terms.join(' ').toLowerCase();
         return Array.from(this._indicator._rooms.values())
@@ -40,6 +40,8 @@ export default class MatrixSearchProvider {
     }
 
     getResultMetas(roomIds) {
+        if (!this._indicator || !this._indicator._rooms)
+            return [];
         return roomIds.map(id => {
             const room = this._indicator._rooms.get(id);
             const fallback = room?.isDirect ? 'avatar-default-symbolic' : 'system-users-symbolic';
@@ -72,11 +74,15 @@ export default class MatrixSearchProvider {
     }
 
     activateResult(roomId) {
+        if (!this._indicator)
+            return;
         this._indicator._incrementVisitCount(roomId);
         this._indicator._openMatrixClient(roomId);
     }
 
     launchSearch(_terms) {
+        if (!this._indicator)
+            return;
         this._indicator._openMatrixClient();
     }
 };
