@@ -1,15 +1,4 @@
 /**
- * Client configurations
- */
-export const CLIENT_CONFIGS = {
-    0: { name: 'Web (matrix.to)', icon: 'matrix.svg' },
-    1: { name: 'Element', icon: 'element.svg' },
-    2: { name: 'Fractal', icon: 'fractal.svg' },
-    3: { name: 'SchildiChat', icon: 'schildichat.svg' },
-    4: { name: 'NeoChat', icon: 'neochat.svg' },
-};
-
-/**
  * GSettings keys
  */
 export const SETTINGS_KEYS = {

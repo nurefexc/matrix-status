@@ -34,30 +34,3 @@ export function createIcon(gicon, size = 16, styleClass = 'system-status-icon') 
         style_class: styleClass,
     });
 }
-
-export function getWebUrl(roomId = null) {
-    return roomId ? `https://matrix.to/#/${roomId}` : 'https://matrix.to';
-}
-
-export function getElementUrl(roomId = null) {
-    return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
-}
-
-export function getSchildiChatUrl(roomId = null) {
-    return roomId ? `schildichat://vector/webapp/#/room/${roomId}` : 'schildichat://';
-}
-
-export function getNeoChatUrl(roomId = null) {
-    if (!roomId) return 'matrix:';
-    const encodedId = roomId.replace(/:/g, '%3A').replace(/^!/, '');
-    const prefix = roomId.startsWith('@') ? 'u' : 'roomid';
-    return `matrix:${prefix}/${encodedId}?action=chat`;
-}
-
-export function getFractalUrl(roomId = null) {
-    if (!roomId) return 'matrix:';
-    const cleanId = roomId.startsWith('!') ? roomId.slice(1) : roomId;
-    const encodedId = cleanId.replace(/:/g, '%3A');
-    const via = cleanId.includes(':') ? `&via=${cleanId.split(':')[1]}` : '';
-    return `matrix:roomid/${encodedId}?action=join${via}`;
-}

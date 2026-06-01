@@ -25,7 +25,8 @@ import * as Animation from 'resource:///org/gnome/shell/ui/animation.js';
 import MatrixSearchProvider from './provider.js'
 import { MatrixClient } from './matrix.js';
 import * as Utils from './utils.js';
-import { CLIENT_CONFIGS, SETTINGS_KEYS, SYNC_FILTER } from './constants.js';
+import { SETTINGS_KEYS, SYNC_FILTER } from './constants.js';
+import { getClientById } from './clients/index.js';
 
 // ---------------------------------------------------------------------------
 // MatrixIndicator
@@ -157,14 +158,8 @@ const MatrixIndicator = GObject.registerClass(
 
         _openMatrixClient(roomId = null) {
             const t = this._settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE);
-            let uri;
-            switch (t) {
-            case 4: uri = Utils.getNeoChatUrl(roomId); break;
-            case 3: uri = Utils.getSchildiChatUrl(roomId); break;
-            case 2: uri = Utils.getFractalUrl(roomId); break;
-            case 1: uri = Utils.getElementUrl(roomId); break;
-            default: uri = Utils.getWebUrl(roomId); break;
-            }
+            const client = getClientById(t);
+            const uri = client.getUrl(roomId);
 
             try {
                 Gio.AppInfo.launch_default_for_uri(uri, null);
@@ -697,13 +692,13 @@ const MatrixIndicator = GObject.registerClass(
             }
 
             const clientType = this._settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE);
-            if (clientType >= 1 && clientType <= 4) {
-                const cfg = CLIENT_CONFIGS[clientType];
+            if (clientType >= 0 && clientType <= 4) {
+                const client = getClientById(clientType);
 
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-                const launchItem = new PopupMenu.PopupMenuItem(`Open ${cfg.name}`);
+                const launchItem = new PopupMenu.PopupMenuItem(`Open ${client.name}`);
                 const gfile = Gio.File.new_for_path(
-                    GLib.build_filenamev([this._path, 'icons', cfg.icon]));
+                    GLib.build_filenamev([this._path, 'icons', client.icon]));
                 const clientIcon = Utils.createIcon(Gio.FileIcon.new(gfile));
                 launchItem.remove_child(launchItem.label);
                 launchItem.insert_child_at_index(clientIcon, 0);
