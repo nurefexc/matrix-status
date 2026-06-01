@@ -17,13 +17,13 @@ lint:
 install: compile
 	@echo "Installing extension to $(DEST)..."
 	mkdir -p $(DEST)
-	cp -r schemas icons provider.js extension.js prefs.js metadata.json stylesheet.css LICENSE README.md $(DEST)
+	cp -r schemas icons constants.js matrix.js utils.js provider.js extension.js prefs.js metadata.json stylesheet.css LICENSE README.md $(DEST)
 	@echo "Installation complete."
 
 # Create a zip for extensions.gnome.org
 zip: compile
 	@echo "Creating extension zip..."
-	zip -r $(UUID).shell-extension.zip schemas icons provider.js extension.js prefs.js metadata.json stylesheet.css LICENSE README.md -x "schemas/gschemas.compiled"
+	zip -r $(UUID).shell-extension.zip schemas icons constants.js matrix.js utils.js provider.js extension.js prefs.js metadata.json stylesheet.css LICENSE README.md -x "schemas/gschemas.compiled"
 
 restart:
 	gnome-extensions disable $(UUID) || true

@@ -1,5 +1,6 @@
-import Gio from 'gi://Gio'
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import St from 'gi://St';
 
 export default class MatrixSearchProvider {
     _init(indicator) {

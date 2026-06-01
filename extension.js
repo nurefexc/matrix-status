@@ -15,16 +15,17 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import Soup from 'gi://Soup';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { overview, messageTray, panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as Animation from 'resource:///org/gnome/shell/ui/animation.js';
-import MatrixSearchProvider from './provider.js'
 
-const VISIT_COUNTS_KEY = 'visit-counts';
+import MatrixSearchProvider from './provider.js'
+import { MatrixClient } from './matrix.js';
+import * as Utils from './utils.js';
+import { CLIENT_CONFIGS, SETTINGS_KEYS, SYNC_FILTER } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // MatrixIndicator
@@ -37,15 +38,10 @@ const MatrixIndicator = GObject.registerClass(
 
             this._settings = settings;
             this._path = extensionPath;
-            this._httpSession = new Soup.Session();
-            this._cancellable = new Gio.Cancellable();
+            this._matrixClient = new MatrixClient(settings);
 
             const iconPath = GLib.build_filenamev([this._path, 'icons', 'matrix.svg']);
-            this._icon = new St.Icon({
-                gicon: Gio.Icon.new_for_string(iconPath),
-                style_class: 'system-status-icon',
-                icon_size: 16,
-            });
+            this._icon = Utils.createIcon(Gio.Icon.new_for_string(iconPath));
             this.add_child(this._icon);
 
             this._lastRooms = [];
@@ -80,8 +76,7 @@ const MatrixIndicator = GObject.registerClass(
             }
             this._notifSource?.destroy();
             this._notifSource = null;
-            this._cancellable.cancel();
-            this._httpSession.abort();
+            this._matrixClient.destroy();
             this._avatarCache.clear();
             this._rooms.clear();
             super.destroy();
@@ -93,21 +88,21 @@ const MatrixIndicator = GObject.registerClass(
 
         _loadVisitCounts() {
             try {
-                const raw = this._settings.get_string(VISIT_COUNTS_KEY).trim();
+                const raw = this._settings.get_string(SETTINGS_KEYS.VISIT_COUNTS).trim();
                 if (!raw) return new Map();
                 return new Map(Object.entries(JSON.parse(raw)));
             } catch (e) {
-                console.warn(`[Matrix-Status] Failed to load visit counts: ${e.message}`);
+                Utils.warn(`Failed to load visit counts: ${e.message}`);
                 return new Map();
             }
         }
 
         _saveVisitCounts() {
             try {
-                this._settings.set_string(VISIT_COUNTS_KEY,
+                this._settings.set_string(SETTINGS_KEYS.VISIT_COUNTS,
                     JSON.stringify(Object.fromEntries(this._visitCounts)));
             } catch (e) {
-                console.warn(`[Matrix-Status] Failed to save visit counts: ${e.message}`);
+                Utils.warn(`Failed to save visit counts: ${e.message}`);
             }
         }
 
@@ -160,115 +155,48 @@ const MatrixIndicator = GObject.registerClass(
         // URL / client helpers
         // -----------------------------------------------------------------------
 
-        _getWebUrl(roomId = null) {
-            return roomId ? `https://matrix.to/#/${roomId}` : 'https://matrix.to';
-        }
-
-        _getElementUrl(roomId = null) {
-            return roomId ? `element://vector/webapp/#/room/${roomId}` : 'element://';
-        }
-
-        _getSchildiChatUrl(roomId = null) {
-            return roomId ? `schildichat://vector/webapp/#/room/${roomId}` : 'schildichat://';
-        }
-
-        /**
-         * Build a NeoChat-compatible matrix: URI for a given room.
-         * Format: matrix:u/<encoded-id>?action=chat
-         */
-        _getNeoChatUrl(roomId = null) {
-            if (!roomId) return 'matrix:';
-            const encodedId = roomId.replace(/:/g, '%3A').replace(/^!/, '');
-            // roomId could be !roomid:server.com or @user:server.com
-            // neochat uses matrix:u/user%3Aserver.com?action=chat or matrix:roomid/roomid%3Aserver.com?action=chat
-            const prefix = roomId.startsWith('@') ? 'u' : 'roomid';
-            return `matrix:${prefix}/${encodedId}?action=chat`;
-        }
-
-        /**
-         * Build a Fractal-compatible matrix: URI for a given room.
-         * Format: matrix:roomid/<encoded-id>?action=join&via=<domain>
-         */
-        _getFractalUrl(roomId = null) {
-            if (!roomId) return 'matrix:';
-            const cleanId = roomId.startsWith('!') ? roomId.slice(1) : roomId;
-            const encodedId = cleanId.replace(/:/g, '%3A');
-            const via = cleanId.includes(':') ? `&via=${cleanId.split(':')[1]}` : '';
-            return `matrix:roomid/${encodedId}?action=join${via}`;
-        }
-
         _openMatrixClient(roomId = null) {
-            const t = this._settings.get_enum('client-type');
-            const uri = t === 4 ? this._getNeoChatUrl(roomId)
-                : t === 3 ? this._getSchildiChatUrl(roomId)
-                    : t === 2 ? this._getFractalUrl(roomId)
-                        : t === 1 ? this._getElementUrl(roomId)
-                            : this._getWebUrl(roomId);
-            Gio.AppInfo.launch_default_for_uri(uri, null);
+            const t = this._settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE);
+            let uri;
+            switch (t) {
+            case 4: uri = Utils.getNeoChatUrl(roomId); break;
+            case 3: uri = Utils.getSchildiChatUrl(roomId); break;
+            case 2: uri = Utils.getFractalUrl(roomId); break;
+            case 1: uri = Utils.getElementUrl(roomId); break;
+            default: uri = Utils.getWebUrl(roomId); break;
+            }
+
+            try {
+                Gio.AppInfo.launch_default_for_uri(uri, null);
+            } catch (e) {
+                Utils.error(`Failed to launch client: ${e.message}`);
+            }
         }
 
         _copyToClipboard(text) {
             St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, text);
         }
 
-        /**
-         * Convert an mxc:// URL into an authenticated thumbnail URL.
-         * Uses the modern /client/v1/media/ path; fallbacks are handled in _loadAvatar.
-         */
-        _getMxcThumbnailUrl(mxcUrl) {
-            if (!mxcUrl?.startsWith('mxc://')) return null;
-            let base = this._settings.get_string('homeserver-url').trim();
-            if (!base) return null;
-            if (!base.startsWith('http')) base = `https://${base}`;
-            base = base.replace(/\/$/, '');
-            const parts = mxcUrl.replace('mxc://', '').split('/');
-            if (parts.length < 2) return null;
-            return `${base}/_matrix/client/v1/media/thumbnail/${parts[0]}/${parts.slice(1).join('/')}?width=96&height=96&method=crop`;
-        }
-
-        _getPrettyId(room) {
-            return room.dmPartnerId || room.canonicalAlias || room.id;
-        }
 
         // -----------------------------------------------------------------------
         // Network – identity and profile
         // -----------------------------------------------------------------------
 
-        async _fetchWhoAmI(homeserver, token) {
+        async _fetchIdentity() {
             try {
-                const msg = Soup.Message.new('GET',
-                    `${homeserver}/_matrix/client/v3/account/whoami`);
-                msg.request_headers.append('Authorization', `Bearer ${token}`);
-                const bytes = await this._httpSession.send_and_read_async(
-                    msg, GLib.PRIORITY_DEFAULT, this._cancellable);
-                if (msg.status_code === 200) {
-                    const r = JSON.parse(new TextDecoder().decode(bytes.toArray()));
-                    this._userId = r.user_id;
+                const whoami = await this._matrixClient.whoami();
+                if (whoami) {
+                    this._userId = whoami.user_id;
+                    const profile = await this._matrixClient.getProfile(this._userId);
+                    if (profile) {
+                        this._displayName = profile.displayname || null;
+                        this._profileAvatarUrl = profile.avatar_url
+                            ? this._matrixClient.getMxcThumbnailUrl(profile.avatar_url)
+                            : null;
+                    }
                 }
-            } catch (_e) { /* non-critical */
-            }
-        }
-
-        /**
-         * Fetch the full profile in a single request:
-         * displayname + avatar_url (mxc://) → converted to thumbnail URL.
-         */
-        async _fetchProfile(homeserver, token) {
-            if (!this._userId) return;
-            try {
-                const url = `${homeserver}/_matrix/client/v3/profile/${encodeURIComponent(this._userId)}`;
-                const msg = Soup.Message.new('GET', url);
-                msg.request_headers.append('Authorization', `Bearer ${token}`);
-                const bytes = await this._httpSession.send_and_read_async(
-                    msg, GLib.PRIORITY_DEFAULT, this._cancellable);
-                if (msg.status_code === 200) {
-                    const r = JSON.parse(new TextDecoder().decode(bytes.toArray()));
-                    this._displayName = r.displayname || null;
-                    this._profileAvatarUrl = r.avatar_url
-                        ? this._getMxcThumbnailUrl(r.avatar_url)
-                        : null;
-                }
-            } catch (_e) { /* non-critical */
+            } catch (e) {
+                Utils.error(`Identity fetch failed: ${e.message}`);
             }
         }
 
@@ -320,26 +248,12 @@ const MatrixIndicator = GObject.registerClass(
                     }
                 }
 
-                const token = this._settings.get_string('access-token').trim();
-                const tryFetch = async fetchUrl => {
-                    const m = Soup.Message.new('GET', fetchUrl);
-                    if (token) m.request_headers.append('Authorization', `Bearer ${token}`);
-                    const b = await this._httpSession.send_and_read_async(
-                        m, GLib.PRIORITY_DEFAULT, this._cancellable);
-                    return {status: m.status_code, bytes: b};
-                };
+                const res = await this._matrixClient.fetchBytes(url);
 
-                let res = await tryFetch(url);
-                if (res.status !== 200 && url.includes('/client/v1/media/'))
-                    res = await tryFetch(url.replace('/client/v1/media/', '/media/v3/'));
-                if (res.status !== 200)
-                    res = await tryFetch(
-                        url.replace('/client/v1/media/', '/media/r0/')
-                            .replace('/v3/', '/r0/'));
-
-                if (res.status === 200) {
+                if (res && res.status === 200) {
+                    const bytes = res.bytes;
                     cacheFile.replace_contents_async(
-                        res.bytes.toArray(), null, false,
+                        bytes.toArray(), null, false,
                         Gio.FileCreateFlags.REPLACE_DESTINATION, null,
                         (f, r) => {
                             try {
@@ -347,7 +261,7 @@ const MatrixIndicator = GObject.registerClass(
                             } catch (_e) {
                             }
                         });
-                    const gicon = Gio.BytesIcon.new(res.bytes);
+                    const gicon = Gio.BytesIcon.new(bytes);
                     this._avatarCache.set(url, gicon);
                     if (bin && !bin.is_finalized)
                         bin.set_child(new St.Icon({
@@ -369,16 +283,14 @@ const MatrixIndicator = GObject.registerClass(
                     return;
                 }
 
-                throw new Error(`HTTP ${res.status}`);
+                throw new Error('Fetch failed');
             } catch (e) {
-                if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
-                    if (bin && !bin.is_finalized)
-                        bin.set_child(new St.Icon({
-                            icon_name: fallbackIconName,
-                            icon_size: iconSize,
-                            style_class: 'matrix-room-avatar-default',
-                        }));
-                }
+                if (bin && !bin.is_finalized)
+                    bin.set_child(new St.Icon({
+                        icon_name: fallbackIconName,
+                        icon_size: iconSize,
+                        style_class: 'matrix-room-avatar-default',
+                    }));
             }
         }
 
@@ -515,18 +427,18 @@ const MatrixIndicator = GObject.registerClass(
 
             try {
                 const url = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(dataUrl)}`;
-                const msg = Soup.Message.new('GET', url);
-                const bytes = await this._httpSession.send_and_read_async(
-                    msg, GLib.PRIORITY_DEFAULT, this._cancellable);
+                const res = await this._matrixClient.fetchBytes(url, false);
                 spinner.destroy();
 
-                if (msg.status_code !== 200) {
+                if (!res || res.status !== 200) {
                     container.add_child(new St.Label({
                         text: 'Error generating QR code',
                         x_align: Clutter.ActorAlign.CENTER,
                     }));
                     return;
                 }
+
+                const bytes = res.bytes;
 
                 container.add_child(new St.Icon({
                     gicon: Gio.BytesIcon.new(bytes),
@@ -564,7 +476,7 @@ const MatrixIndicator = GObject.registerClass(
                 }
 
                 if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    console.error(`[Matrix-Status] QR generation error: ${e.message}`);
+                    Utils.error(`QR generation error: ${e.message}`);
             }
         }
 
@@ -595,7 +507,7 @@ const MatrixIndicator = GObject.registerClass(
                 this._openQrRoomId = room.id;
                 this._createActionBox(room, roomItem);
             } catch (e) {
-                console.error(`[Matrix-Status] Action box error: ${e.message}`);
+                Utils.error(`Action box error: ${e.message}`);
             }
         }
 
@@ -656,7 +568,7 @@ const MatrixIndicator = GObject.registerClass(
 
             this._menuBuildSourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._menuBuildSourceId = null;
-                if (!this._cancellable.is_cancelled())
+                if (!this._matrixClient.cancellable.is_cancelled())
                     this._buildMenu(roomList);
                 return GLib.SOURCE_REMOVE;
             });
@@ -784,20 +696,15 @@ const MatrixIndicator = GObject.registerClass(
                 });
             }
 
-            const clientType = this._settings.get_enum('client-type');
+            const clientType = this._settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE);
             if (clientType >= 1 && clientType <= 4) {
-                const cfg = {
-                    1: {name: 'Element', icon: 'element.svg'},
-                    2: {name: 'Fractal', icon: 'fractal.svg'},
-                    3: {name: 'SchildiChat', icon: 'schildichat.svg'},
-                    4: {name: 'NeoChat', icon: 'neochat.svg'},
-                }[clientType];
+                const cfg = CLIENT_CONFIGS[clientType];
 
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 const launchItem = new PopupMenu.PopupMenuItem(`Open ${cfg.name}`);
                 const gfile = Gio.File.new_for_path(
                     GLib.build_filenamev([this._path, 'icons', cfg.icon]));
-                const clientIcon = new St.Icon({gicon: Gio.FileIcon.new(gfile), icon_size: 16});
+                const clientIcon = Utils.createIcon(Gio.FileIcon.new(gfile));
                 launchItem.remove_child(launchItem.label);
                 launchItem.insert_child_at_index(clientIcon, 0);
                 launchItem.add_child(launchItem.label);
@@ -807,55 +714,25 @@ const MatrixIndicator = GObject.registerClass(
         }
 
         async refresh() {
-            let homeserver = this._settings.get_string('homeserver-url').trim();
-            const token = this._settings.get_string('access-token').trim();
-            if (!token || !homeserver) return;
-            if (!homeserver.startsWith('http')) homeserver = `https://${homeserver}`;
-            homeserver = homeserver.replace(/\/$/, '');
-
-            const filter = JSON.stringify({
-                room: {
-                    state: {
-                        types: [
-                            'm.room.name', 'm.room.member', 'm.room.canonical_alias',
-                            'm.room.encryption', 'm.room.avatar',
-                        ],
-                        lazy_load_members: true,
-                    },
-                    timeline: {limit: 1},
-                    account_data: {types: ['m.tag']},
-                },
-            });
-
             try {
-                let url = `${homeserver}/_matrix/client/v3/sync?timeout=30000&filter=${encodeURIComponent(filter)}`;
-                if (this._nextBatch) url += `&since=${this._nextBatch}`;
+                const response = await this._matrixClient.sync(this._nextBatch, SYNC_FILTER);
+                if (response) {
+                    if (response.next_batch)
+                        this._nextBatch = response.next_batch;
 
-                const msg = Soup.Message.new('GET', url);
-                msg.request_headers.append('Authorization', `Bearer ${token}`);
-                const bytes = await this._httpSession.send_and_read_async(
-                    msg, GLib.PRIORITY_DEFAULT, this._cancellable);
-
-                if (msg.status_code === 200) {
-                    const response = JSON.parse(new TextDecoder().decode(bytes.toArray()));
-                    if (response.next_batch) this._nextBatch = response.next_batch;
-
-                    if (!this._userId) {
-                        await this._fetchWhoAmI(homeserver, token);
-                        await this._fetchProfile(homeserver, token);
-                    }
+                    if (!this._userId)
+                        await this._fetchIdentity();
 
                     this._processSync(response);
                     this._isInitialSync = false;
-                } else if (msg.status_code === 401 || msg.status_code === 403) {
-                    console.warn(`[Matrix-Status] Auth failed (${msg.status_code}). Resetting sync token.`);
-                    this._nextBatch = null;
-                } else {
-                    console.warn(`[Matrix-Status] Sync failed with status: ${msg.status_code}`);
                 }
             } catch (e) {
-                if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    console.error(`[Matrix-Status] Sync error: ${e.message}`);
+                if (e.message === 'AUTH_ERROR') {
+                    Utils.warn('Auth failed. Resetting sync token.');
+                    this._nextBatch = null;
+                } else {
+                    Utils.error(`Sync error: ${e.message}`);
+                }
             }
         }
 
@@ -928,7 +805,7 @@ const MatrixIndicator = GObject.registerClass(
 
                     const avatarEv = roomData.state?.events?.find(e => e.type === 'm.room.avatar');
                     if (avatarEv?.content?.url)
-                        avatarUrl = this._getMxcThumbnailUrl(avatarEv.content.url);
+                        avatarUrl = this._matrixClient.getMxcThumbnailUrl(avatarEv.content.url);
 
                     if (!avatarUrl && isDirect) {
                         const partnerHero = roomData.summary?.['m.heroes']?.find(
@@ -937,7 +814,7 @@ const MatrixIndicator = GObject.registerClass(
                             const memberEv = roomData.state?.events?.find(
                                 e => e.type === 'm.room.member' && e.state_key === partnerHero);
                             if (memberEv?.content?.avatar_url)
-                                avatarUrl = this._getMxcThumbnailUrl(memberEv.content.avatar_url);
+                                avatarUrl = this._matrixClient.getMxcThumbnailUrl(memberEv.content.avatar_url);
                         }
                     }
                     if (!avatarUrl && this._userId) {
@@ -946,7 +823,7 @@ const MatrixIndicator = GObject.registerClass(
                                 e.content?.avatar_url &&
                                 e.state_key !== this._userId);
                         if (anyMember?.content?.avatar_url)
-                            avatarUrl = this._getMxcThumbnailUrl(anyMember.content.avatar_url);
+                            avatarUrl = this._matrixClient.getMxcThumbnailUrl(anyMember.content.avatar_url);
                     }
 
                     const updatedRoom = {
@@ -1000,14 +877,14 @@ export default class MatrixExtension extends Extension {
             overview.searchController.addProvider(this.#provider);
         this._indicator.refresh();
 
-        this._settings.connect('changed::sync-interval', () => this._restartTimer());
+        this._settings.connect(`changed::${SETTINGS_KEYS.SYNC_INTERVAL}`, () => this._restartTimer());
 
         const rebuildMenu = () => {
             this._indicator?._scheduleMenuBuild(this._indicator?._lastRooms ?? []);
         };
-        this._settings.connect('changed::client-type', rebuildMenu);
-        this._settings.connect('changed::generate-qr-code-enable', rebuildMenu);
-        this._settings.connect('changed::notifications-enable', rebuildMenu);
+        this._settings.connect(`changed::${SETTINGS_KEYS.CLIENT_TYPE}`, rebuildMenu);
+        this._settings.connect(`changed::${SETTINGS_KEYS.GENERATE_QR_ENABLE}`, rebuildMenu);
+        this._settings.connect(`changed::${SETTINGS_KEYS.NOTIFICATIONS_ENABLE}`, rebuildMenu);
 
         this._restartTimer();
     }
@@ -1017,7 +894,7 @@ export default class MatrixExtension extends Extension {
             clearInterval(this._timeout);
             this._timeout = null;
         }
-        const interval = this._settings.get_int('sync-interval') * 1000;
+        const interval = this._settings.get_int(SETTINGS_KEYS.SYNC_INTERVAL) * 1000;
         this._timeout = setInterval(
             () => this._indicator.refresh(), Math.max(interval, 5000));
     }

@@ -2,6 +2,7 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
+import { SETTINGS_KEYS } from './constants.js';
 
 export default class MatrixStatusPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -25,13 +26,13 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         const homeserverRow = new Adw.EntryRow({
             title: 'Homeserver URL',
         });
-        settings.bind('homeserver-url', homeserverRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(SETTINGS_KEYS.HOMESERVER_URL, homeserverRow, 'text', Gio.SettingsBindFlags.DEFAULT);
         apiGroup.add(homeserverRow);
 
         const tokenRow = new Adw.PasswordEntryRow({
             title: 'Access Token',
         });
-        settings.bind('access-token', tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(SETTINGS_KEYS.ACCESS_TOKEN, tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
 
         const tokenHelpIcon = new Gtk.Image({
             icon_name: 'help-about-symbolic',
@@ -65,7 +66,7 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
             valign: Gtk.Align.CENTER,
             width_chars: 5,
         });
-        settings.bind('sync-interval', intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(SETTINGS_KEYS.SYNC_INTERVAL, intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         intervalRow.add_suffix(intervalSpin);
         configGroup.add(intervalRow);
 
@@ -77,9 +78,9 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
             strings: ['Web (matrix.to)', 'Element', 'Fractal', 'SchildiChat', 'NeoChat'],
         });
         clientTypeRow.model = clientModel;
-        clientTypeRow.selected = Math.max(0, Math.min(settings.get_enum('client-type'), 4));
+        clientTypeRow.selected = Math.max(0, Math.min(settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE), 4));
         clientTypeRow.connect('notify::selected', () => {
-            settings.set_enum('client-type', clientTypeRow.selected);
+            settings.set_enum(SETTINGS_KEYS.CLIENT_TYPE, clientTypeRow.selected);
         });
         configGroup.add(clientTypeRow);
 
@@ -90,7 +91,7 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         const notificationsSwitch = new Gtk.Switch({
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('notifications-enable', notificationsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(SETTINGS_KEYS.NOTIFICATIONS_ENABLE, notificationsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         notificationsRow.add_suffix(notificationsSwitch);
         notificationsRow.set_activatable_widget(notificationsSwitch);
         configGroup.add(notificationsRow);
@@ -102,7 +103,7 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         const qrSwitch = new Gtk.Switch({
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('generate-qr-code-enable', qrSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind(SETTINGS_KEYS.GENERATE_QR_ENABLE, qrSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         qrRow.add_suffix(qrSwitch);
         qrRow.set_activatable_widget(qrSwitch);
         configGroup.add(qrRow);
