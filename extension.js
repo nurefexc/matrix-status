@@ -52,6 +52,7 @@ const MatrixIndicator = GObject.registerClass(
             this._avatarCache = new Map();
             this._rooms = new Map();
             this._isInitialSync = true;
+            this._isCacheLoaded = false;
             this._openQrRoomId = null;
             this._menuBuildSourceId = null;
 
@@ -66,6 +67,8 @@ const MatrixIndicator = GObject.registerClass(
                 GLib.get_user_cache_dir(), 'matrix-status-extension',
             ]);
             GLib.mkdir_with_parents(this._cachePath, 0o755);
+
+            this._loadCache();
 
             this._notifManager = new NotificationManager(settings, this._matrixClient, this._cachePath);
             this._notifManager.onNotificationActivated = (roomId) => {
@@ -113,6 +116,72 @@ const MatrixIndicator = GObject.registerClass(
             }
         }
 
+        // -----------------------------------------------------------------------
+        // Cache persistence
+        // -----------------------------------------------------------------------
+
+        _getCacheFile() {
+            return Gio.File.new_for_path(GLib.build_filenamev([this._cachePath, 'rooms.json']));
+        }
+
+        _loadCache() {
+            try {
+                const file = this._getCacheFile();
+                if (!file.query_exists(null)) return;
+
+                const [success, contents] = file.load_contents(null);
+                if (!success) return;
+
+                const cache = JSON.parse(new TextDecoder().decode(contents));
+                if (cache.rooms) {
+                    this._rooms = new Map(Object.entries(cache.rooms));
+                    this._isCacheLoaded = true;
+                    // Convert back to Array for _isSameRoomList and _scheduleMenuBuild
+                    const roomList = Array.from(this._rooms.values());
+                    this._lastRooms = roomList;
+                    this._scheduleMenuBuild(roomList);
+                }
+                if (cache.nextBatch)
+                    this._nextBatch = cache.nextBatch;
+                if (cache.userId) this._userId = cache.userId;
+                if (cache.displayName) this._displayName = cache.displayName;
+                if (cache.profileAvatarUrl) this._profileAvatarUrl = cache.profileAvatarUrl;
+
+            } catch (e) {
+                Utils.warn(`Failed to load cache: ${e.message}`);
+            }
+        }
+
+        _saveCache() {
+            try {
+                const file = this._getCacheFile();
+                const cache = {
+                    rooms: Object.fromEntries(this._rooms),
+                    nextBatch: this._nextBatch,
+                    userId: this._userId,
+                    displayName: this._displayName,
+                    profileAvatarUrl: this._profileAvatarUrl,
+                };
+                const contents = JSON.stringify(cache);
+                file.replace_contents_async(
+                    contents,
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null,
+                    (f, res) => {
+                        try {
+                            f.replace_contents_finish(res);
+                        } catch (e) {
+                            Utils.warn(`Failed to save cache finish: ${e.message}`);
+                        }
+                    }
+                );
+            } catch (e) {
+                Utils.warn(`Failed to save cache: ${e.message}`);
+            }
+        }
+
         _incrementVisitCount(roomId) {
             this._visitCounts.set(roomId, Number(this._visitCounts.get(roomId) || 0) + 1);
             this._saveVisitCounts();
@@ -155,6 +224,7 @@ const MatrixIndicator = GObject.registerClass(
                             ? this._matrixClient.getMxcThumbnailUrl(profile.avatar_url)
                             : null;
                     }
+                    this._saveCache();
                 }
             } catch (e) {
                 Utils.error(`Identity fetch failed: ${e.message}`);
@@ -566,8 +636,10 @@ const MatrixIndicator = GObject.registerClass(
 
             this._menuBuildSourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._menuBuildSourceId = null;
-                if (!this._matrixClient.cancellable.is_cancelled())
-                    this._buildMenu(roomList);
+                if (!this._matrixClient || !this._matrixClient.cancellable || this._matrixClient.cancellable.is_cancelled())
+                    return GLib.SOURCE_REMOVE;
+                
+                this._buildMenu(roomList);
                 return GLib.SOURCE_REMOVE;
             });
         }
@@ -585,8 +657,10 @@ const MatrixIndicator = GObject.registerClass(
             }
 
             if (rooms.length === 0) {
-                const item = new PopupMenu.PopupMenuItem(
-                    this._isInitialSync ? 'Synchronizing...' : 'No Active Messages');
+                const label = (this._isInitialSync && !this._isCacheLoaded)
+                    ? 'Connecting to Matrix...'
+                    : 'No Active Messages';
+                const item = new PopupMenu.PopupMenuItem(label);
                 item.sensitive = false;
                 this.menu.addMenuItem(item);
             } else {
@@ -714,6 +788,7 @@ const MatrixIndicator = GObject.registerClass(
         async refresh() {
             try {
                 const response = await this._matrixClient.sync(this._nextBatch, SYNC_FILTER);
+                this._isInitialSync = false;
                 if (response) {
                     if (response.next_batch)
                         this._nextBatch = response.next_batch;
@@ -722,9 +797,10 @@ const MatrixIndicator = GObject.registerClass(
                         await this._fetchIdentity();
 
                     this._processSync(response);
-                    this._isInitialSync = false;
+                    this._saveCache();
                 }
             } catch (e) {
+                this._isInitialSync = false;
                 if (e.message === 'AUTH_ERROR') {
                     Utils.warn('Auth failed. Resetting sync token.');
                     this._nextBatch = null;

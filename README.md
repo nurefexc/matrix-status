@@ -117,7 +117,6 @@ The goal of this project is to provide an ultra-lightweight navigation layer for
 
 ### ⚖️ Phase 2: Scalability and Stability
 - **Multi-Account Support**: Monitor multiple Matrix accounts and homeservers simultaneously.
-- **Offline Cache**: Room list available and searchable without a network connection.
 - **DND Integration**: Synchronise with GNOME's "Do Not Disturb" mode to suppress notifications automatically.
 - **Native Dark Mode Support**: Fully compatible with GNOME 45+ appearance settings.
 
