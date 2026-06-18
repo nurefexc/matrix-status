@@ -4,7 +4,7 @@
 [![Lint](https://github.com/nurefexc/matrix-status/actions/workflows/linter.yml/badge.svg)](https://github.com/nurefexc/matrix-status/actions/workflows/linter.yml)
 [![Release](https://github.com/nurefexc/matrix-status/actions/workflows/release.yml/badge.svg)](https://github.com/nurefexc/matrix-status/actions/workflows/release.yml)
 [![Version](https://img.shields.io/github/v/release/nurefexc/matrix-status?label=version)](https://github.com/nurefexc/matrix-status/releases)
-[![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%E2%80%9349-4A86CF)](#version)
+[![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%E2%80%9350-4A86CF)](#version)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 High-performance Matrix notification monitor for GNOME Shell.
@@ -89,13 +89,15 @@ Open the extension settings to configure:
 
 The goal of this project is to provide an ultra-lightweight navigation layer for the Matrix network, prioritising productivity and quick access over message display.
 
-### 🔍 Phase 1: "Search & Access" Turbo
+### 🔍 Phase 1: "Search & Access" Turbo (In Progress)
 - **SOCKS5 Proxy Support**: Secure network access for digital nomads and corporate environments.
+- **Improved Settings UI**: Better documentation and help tooltips for all configuration options.
 
 ### ⚖️ Phase 2: Scalability and Stability
 - **Multi-Account Support**: Monitor multiple Matrix accounts and homeservers simultaneously.
 - **Offline Cache**: Room list available and searchable without a network connection.
 - **DND Integration**: Synchronise with GNOME's "Do Not Disturb" mode to suppress notifications automatically.
+- **Native Dark Mode Support**: Fully compatible with GNOME 45+ appearance settings.
 
 ## License
 
