@@ -48,7 +48,8 @@ const MatrixNotificationPolicy = GObject.registerClass(
             try {
                 if (this._settings && typeof this._settings.get_boolean === 'function')
                     return this._settings.get_boolean(key);
-            } catch (_) {
+            } catch (e) {
+                Utils.warn(`Failed to get boolean setting ${key}: ${e.message}`);
             }
             return fallback;
         }
@@ -612,7 +613,8 @@ export class NotificationManager {
         for (const item of tracked) {
             try {
                 item.obj.disconnect(item.id);
-            } catch (_) {
+            } catch (e) {
+                Utils.warn(`Failed to disconnect signal: ${e.message}`);
             }
         }
 
@@ -623,7 +625,8 @@ export class NotificationManager {
         try {
             if (this._settings && typeof this._settings.get_boolean === 'function')
                 return this._settings.get_boolean(key);
-        } catch (_) {
+        } catch (e) {
+            Utils.warn(`Failed to get boolean setting ${key}: ${e.message}`);
         }
         return fallback;
     }
@@ -632,7 +635,8 @@ export class NotificationManager {
         try {
             if (this._settings && typeof this._settings.get_int === 'function')
                 return this._settings.get_int(key);
-        } catch (_) {
+        } catch (e) {
+            Utils.warn(`Failed to get int setting ${key}: ${e.message}`);
         }
         return fallback;
     }

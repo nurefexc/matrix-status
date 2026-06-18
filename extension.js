@@ -246,6 +246,7 @@ const MatrixIndicator = GObject.registerClass(
 
                 throw new Error('Fetch failed');
             } catch (e) {
+                Utils.warn(`Failed to load avatar: ${e.message}`);
                 if (bin && !bin.is_finalized)
                     bin.set_child(new St.Icon({
                         icon_name: fallbackIconName,
@@ -465,7 +466,8 @@ const MatrixIndicator = GObject.registerClass(
             } catch (e) {
                 try {
                     spinner.destroy();
-                } catch (_) {
+                } catch (err) {
+                    Utils.warn(`Failed to destroy spinner: ${err.message}`);
                 }
 
                 Utils.error(`QR generation error: ${e.message}`);
