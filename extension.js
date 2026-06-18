@@ -24,6 +24,7 @@ import * as Animation from 'resource:///org/gnome/shell/ui/animation.js';
 
 import MatrixSearchProvider from './provider.js'
 import { MatrixClient } from './matrix.js';
+import { NotificationManager } from './notification.js';
 import * as Utils from './utils.js';
 import { SETTINGS_KEYS, SYNC_FILTER } from './constants.js';
 import { getClientById } from './clients/index.js';
@@ -59,14 +60,18 @@ const MatrixIndicator = GObject.registerClass(
             this._profileAvatarUrl = null;
 
             this._notifiedEvents = new Map();
-            this._notifSource = null;
-
             this._visitCounts = this._loadVisitCounts();
 
             this._cachePath = GLib.build_filenamev([
                 GLib.get_user_cache_dir(), 'matrix-status-extension',
             ]);
             GLib.mkdir_with_parents(this._cachePath, 0o755);
+
+            this._notifManager = new NotificationManager(settings, this._matrixClient, this._cachePath);
+            this._notifManager.onNotificationActivated = (roomId) => {
+                this._incrementVisitCount(roomId);
+                this._openMatrixClient(roomId);
+            };
 
             this._buildMenu([]);
         }
@@ -76,8 +81,8 @@ const MatrixIndicator = GObject.registerClass(
                 GLib.source_remove(this._menuBuildSourceId);
                 this._menuBuildSourceId = null;
             }
-            this._notifSource?.destroy();
-            this._notifSource = null;
+            this._notifManager?.destroy();
+            this._notifManager = null;
             this._matrixClient.destroy();
             this._avatarCache.clear();
             this._rooms.clear();
@@ -114,47 +119,7 @@ const MatrixIndicator = GObject.registerClass(
         }
 
         // -----------------------------------------------------------------------
-        // Desktop notifications
-        // -----------------------------------------------------------------------
-
-        _ensureNotifSource() {
-            if (this._notifSource && !this._notifSource.isDestroyed()) return;
-            this._notifSource = new MessageTray.Source({
-                title: 'Matrix',
-                icon_name: 'user-available-symbolic',
-            });
-            this._notifSource.connect('destroy', () => {
-                this._notifSource = null;
-            });
-            messageTray.add(this._notifSource);
-        }
-
-        _showNotification(room, senderName, body, eventId) {
-            if (!this._settings.get_boolean('notifications-enable')) return;
-            if (!eventId) return;
-            if (this._notifiedEvents.get(room.id) === eventId) return;
-            this._notifiedEvents.set(room.id, eventId);
-
-            this._ensureNotifSource();
-
-            const notif = new MessageTray.Notification({
-                source: this._notifSource,
-                title: room.name,
-                body: `${senderName}: ${body}`,
-                isTransient: true,
-                urgency: room.highlightCount > 0
-                    ? MessageTray.Urgency.HIGH
-                    : MessageTray.Urgency.NORMAL,
-            });
-            notif.connect('activated', () => {
-                this._incrementVisitCount(room.id);
-                this._openMatrixClient(room.id);
-            });
-            this._notifSource.addNotification(notif);
-        }
-
-        // -----------------------------------------------------------------------
-        // URL / client helpers
+        // Network – identity and profile
         // -----------------------------------------------------------------------
 
         _openMatrixClient(roomId = null) {
@@ -869,12 +834,32 @@ const MatrixIndicator = GObject.registerClass(
 
                     if (!this._isInitialSync && unread > 0 && lastEvent) {
                         const eventId = lastEvent.event_id;
-                        if (eventId && eventId !== this._notifiedEvents.get(roomId)) {
+                        if (eventId) {
                             const senderId = lastEvent.sender || '';
                             const senderName = senderId.split(':')[0].replace('@', '') || senderId;
-                            const body = lastEvent.content?.body ||
-                                lastEvent.content?.msgtype || '…';
-                            this._showNotification(updatedRoom, senderName, body, eventId);
+                            
+                            // Check for redaction
+                            const isRedacted = roomData.timeline?.events?.some(e => 
+                                e.type === 'm.room.redaction' && e.redacts === eventId);
+                            
+                            if (!isRedacted) {
+                                const body = lastEvent.content?.body ||
+                                    lastEvent.content?.msgtype || '…';
+                                const urgency = updatedRoom.highlightCount > 0
+                                    ? MessageTray.Urgency.HIGH
+                                    : MessageTray.Urgency.NORMAL;
+                                
+                                this._notifManager.showNotification({
+                                    room: updatedRoom,
+                                    senderName: senderName,
+                                    body: body,
+                                    eventId: eventId,
+                                    urgency: urgency,
+                                    type: lastEvent.type,
+                                    msgtype: lastEvent.content?.msgtype,
+                                })
+                                    .catch(e => Utils.warn(`[Matrix-Status] Failed to show notification: ${e.message}`));
+                            }
                         }
                     }
                 }
