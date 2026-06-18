@@ -76,14 +76,37 @@ Open the extension settings to configure:
 - **QR Code Generation**: Enable or disable QR code buttons for rooms and your profile.
 - **Desktop Notifications**: Enable or disable GNOME Shell message tray notifications.
 
-### 🔑 How to get your Access Token (Element Desktop)
+### 🔑 How to get your Access Token
 
-1. Open **All Settings** and go to **Help and about** at the bottom of the left panel.
-2. Scroll down to **Advanced** and click the arrow next to **Access Token** to expand it.
-3. Click the copy button to copy it to the clipboard.
+You will need a Matrix access token to use this extension. You can obtain it in two ways:
+
+#### Method 1: Element Desktop (Simple)
+
+1. Open **All Settings**, then click on **Help & about** at the bottom of the left panel.
+2. Scroll down to the **Advanced** section and click the arrow next to **Access Token**.
+3. Copy the token to your clipboard.
+
+#### Method 2: Command Line (curl)
+
+If you don't use Element or find it faster, run the following command in your terminal (replace with your own credentials):
+
+```bash
+curl -XPOST -d '{"type":"m.login.password", "user":"USERNAME", "password":"PASSWORD"}' \
+"https://matrix.org/_matrix/client/v3/login"
+```
+
+*Note: If you use your own homeserver, replace `https://matrix.org` with your server's URL.*
+
+Look for the `"access_token"` field in the response.
 
 > [!WARNING]
-> **Your access token is sensitive — treat it like a password.** Clear it from your clipboard and clipboard history after use.
+> **Your token is sensitive data – treat it like your password!** Clear it from your clipboard and command line history after use.
+
+### ⚙️ Entering Settings
+
+1. Open the extension settings.
+2. In the **Homeserver URL** field, enter your server's address (e.g., `https://matrix.org`).
+3. In the **Access Token** field, paste the token obtained above.
 
 ## 🚀 Roadmap
 
@@ -91,6 +114,7 @@ The goal of this project is to provide an ultra-lightweight navigation layer for
 
 ### 🔍 Phase 1: "Search & Access" Turbo (In Progress)
 - **SOCKS5 Proxy Support**: Secure network access for digital nomads and corporate environments.
+- **Improved Settings UI**: Better documentation and help tooltips for all configuration options. (✓ Done)
 
 ### ⚖️ Phase 2: Scalability and Stability
 - **Multi-Account Support**: Monitor multiple Matrix accounts and homeservers simultaneously.
