@@ -91,7 +91,6 @@ The goal of this project is to provide an ultra-lightweight navigation layer for
 
 ### 🔍 Phase 1: "Search & Access" Turbo (In Progress)
 - **SOCKS5 Proxy Support**: Secure network access for digital nomads and corporate environments.
-- **Improved Settings UI**: Better documentation and help tooltips for all configuration options.
 
 ### ⚖️ Phase 2: Scalability and Stability
 - **Multi-Account Support**: Monitor multiple Matrix accounts and homeservers simultaneously.

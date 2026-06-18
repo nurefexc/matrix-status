@@ -5,6 +5,14 @@ import Gtk from 'gi://Gtk';
 import { SETTINGS_KEYS } from './constants.js';
 
 export default class MatrixStatusPreferences extends ExtensionPreferences {
+    _createHelpIcon(text) {
+        return new Gtk.Image({
+            icon_name: 'help-about-symbolic',
+            tooltip_text: text,
+            valign: Gtk.Align.CENTER,
+        });
+    }
+
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
 
@@ -19,7 +27,6 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
 
         const apiGroup = new Adw.PreferencesGroup({
             title: 'Matrix API',
-            description: 'Your homeserver address and account access token',
         });
         page.add(apiGroup);
 
@@ -27,6 +34,8 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
             title: 'Homeserver URL',
         });
         settings.bind(SETTINGS_KEYS.HOMESERVER_URL, homeserverRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+
+        homeserverRow.add_suffix(this._createHelpIcon('The full URL of your Matrix homeserver (e.g., https://matrix.org)'));
         apiGroup.add(homeserverRow);
 
         const tokenRow = new Adw.PasswordEntryRow({
@@ -34,17 +43,13 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
         });
         settings.bind(SETTINGS_KEYS.ACCESS_TOKEN, tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
 
-        const tokenHelpIcon = new Gtk.Image({
-            icon_name: 'help-about-symbolic',
-            tooltip_text:
-                'How to find your access token in Element Desktop:\n' +
-                '1. Open Settings → Help & About (bottom-left)\n' +
-                '2. Scroll to Advanced → Access Token\n' +
-                '3. Click the copy button\n\n' +
-                'Treat this like a password.',
-            valign: Gtk.Align.CENTER,
-        });
-        tokenRow.add_suffix(tokenHelpIcon);
+        tokenRow.add_suffix(this._createHelpIcon(
+            'How to find your access token in Element Desktop:\n' +
+            '1. Open Settings → Help & About (bottom-left)\n' +
+            '2. Scroll to Advanced → Access Token\n' +
+            '3. Click the copy button\n\n' +
+            'Treat this like a password.'
+        ));
         apiGroup.add(tokenRow);
 
         const configGroup = new Adw.PreferencesGroup({
@@ -54,7 +59,6 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
 
         const intervalRow = new Adw.ActionRow({
             title: 'Sync Interval',
-            subtitle: 'How often to poll for new messages (seconds)',
         });
         const intervalSpin = new Gtk.SpinButton({
             adjustment: new Gtk.Adjustment({
@@ -67,43 +71,48 @@ export default class MatrixStatusPreferences extends ExtensionPreferences {
             width_chars: 5,
         });
         settings.bind(SETTINGS_KEYS.SYNC_INTERVAL, intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+
+        intervalRow.add_prefix(this._createHelpIcon('How often to poll for new messages (seconds)'));
         intervalRow.add_suffix(intervalSpin);
         configGroup.add(intervalRow);
 
         const clientTypeRow = new Adw.ComboRow({
             title: 'Preferred Client',
-            subtitle: 'Application to open when clicking a room',
         });
         const clientModel = new Gtk.StringList({
             strings: ['Web (matrix.to)', 'Element', 'Fractal', 'SchildiChat', 'NeoChat'],
         });
         clientTypeRow.model = clientModel;
+        clientTypeRow.add_prefix(this._createHelpIcon('Application to open when clicking a room'));
         clientTypeRow.selected = Math.max(0, Math.min(settings.get_enum(SETTINGS_KEYS.CLIENT_TYPE), 4));
         clientTypeRow.connect('notify::selected', () => {
             settings.set_enum(SETTINGS_KEYS.CLIENT_TYPE, clientTypeRow.selected);
         });
+
         configGroup.add(clientTypeRow);
 
         const notificationsRow = new Adw.ActionRow({
             title: 'Desktop Notifications',
-            subtitle: 'Show GNOME Shell notifications for new messages',
         });
         const notificationsSwitch = new Gtk.Switch({
             valign: Gtk.Align.CENTER,
         });
         settings.bind(SETTINGS_KEYS.NOTIFICATIONS_ENABLE, notificationsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+        notificationsRow.add_prefix(this._createHelpIcon('Show GNOME Shell notifications for new messages'));
         notificationsRow.add_suffix(notificationsSwitch);
         notificationsRow.set_activatable_widget(notificationsSwitch);
         configGroup.add(notificationsRow);
 
         const qrRow = new Adw.ActionRow({
             title: 'QR Code Generation',
-            subtitle: 'Add a QR button to rooms and your profile header',
         });
         const qrSwitch = new Gtk.Switch({
             valign: Gtk.Align.CENTER,
         });
         settings.bind(SETTINGS_KEYS.GENERATE_QR_ENABLE, qrSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+        qrRow.add_prefix(this._createHelpIcon('Add a QR button to rooms and your profile header to easily share links with others'));
         qrRow.add_suffix(qrSwitch);
         qrRow.set_activatable_widget(qrSwitch);
         configGroup.add(qrRow);
